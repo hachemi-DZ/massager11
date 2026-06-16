@@ -61,7 +61,7 @@
         .message .reactions span { cursor: pointer; padding: 0 6px; border-radius: 20px; background: rgba(255,255,255,0.2); }
         .reply-indicator { font-size: 11px; opacity: 0.8; margin-bottom: 4px; border-left: 2px solid cyan; padding-left: 8px; }
         .delivery-status { font-size: 10px; margin-left: 8px; }
-        .input-group { display: flex; gap: 8px; padding: 20px; flex-wrap: wrap; align-items: center; }
+        .input-group { display: flex; gap: 8px; padding: 20px; flex-wrap: wrap; align-items: center; position: relative; }
         #message-input { flex: 1; }
         #reply-bar, #pinned-message { font-size: 12px; padding: 0 20px 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         #pinned-message { background: rgba(0,0,0,0.6); border-radius: 20px; margin: 0 20px 8px; padding: 8px; display: none; }
@@ -85,9 +85,7 @@
         .room-code-box input { flex: 1; min-width: 100px; }
         .install-btn { position: fixed; bottom: 80px; left: 20px; background: rgba(0,0,0,0.6); border-radius: 30px; padding: 6px 14px; z-index: 1000; font-size: 12px; }
 
-        
-                /* لوحة الإيموجي المنبثقة */
-               /* لوحة الإيموجي */
+        /* لوحة الإيموجي */
         .emoji-picker {
             display: none;
             position: absolute;
@@ -175,7 +173,6 @@
                 <button class="emoji-toggle-btn" id="emoji-toggle-btn" disabled>😊</button>
                 <div class="emoji-picker" id="emoji-picker"></div>
                 <input type="text" id="message-input" placeholder="رسالة مشفرة..." disabled>
-                <button class="emoji-btn" id="emoji-toggle-btn" disabled>😊</button>
                 <button id="voice-input-btn" disabled>🎤</button>
                 <button id="attach-file-btn" disabled>🖼️</button>
                 <button id="reminder-btn" disabled>⏰</button>
@@ -183,9 +180,6 @@
                 <button id="video-call-btn" disabled>📹</button>
                 <button id="screen-share-btn" disabled>🖥️</button>
                 <button id="live-stream-btn" disabled>📡</button>
-                <div class="emoji-picker" id="emoji-picker">
-                    <!-- الإيموجيات ستضاف بالجافا سكريبت -->
-                </div>
             </div>
             <div id="file-preview-area"></div>
         </div>
@@ -914,18 +908,6 @@
             document.getElementById('install-btn').style.display = 'none';
         }
     };
-    // ================================================================
-    // إرسال الرسالة بالضغط على Enter
-    // ================================================================
-    document.getElementById('message-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { // Shift+Enter للسطر الجديد (اختياري)
-            e.preventDefault(); // منع إضافة سطر جديد
-            const sendBtn = document.getElementById('send-btn');
-            if (!sendBtn.disabled) {
-                sendBtn.click(); // محاكاة الضغط على زر الإرسال
-            }
-        }
-    });
 </script>
 </body>
 </html>
