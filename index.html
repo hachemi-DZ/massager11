@@ -1,256 +1,702 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>📱 مرسال آمن - مثل واتساب</title>
+    <title>💬 واتساب آمن</title>
     <style>
         /* ===== الأنماط العامة ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         :root {
-            --bg1: #0a0f1e; --bg2: #010101; --glass: rgba(15,25,45,0.4);
-            --border: rgba(255,255,255,0.2); --text: #fff; --own-msg: #2c6e9e;
-            --other-msg: rgba(255,255,240,0.12); --shadow: 0 25px 45px rgba(0,0,0,0.4);
-        }
-        body.light {
-            --bg1: #d0d8e8; --bg2: #ffffff; --glass: rgba(200,210,240,0.7);
-            --border: rgba(0,0,0,0.2); --text: #111; --own-msg: #4a8fbf; --other-msg: rgba(0,0,0,0.08);
+            --primary: #075e54;
+            --secondary: #128c7e;
+            --bg-chat: #1a2a3a;
+            --bg-sidebar: #131f2a;
+            --text-light: #e9edf2;
+            --text-muted: #8899aa;
+            --shadow: 0 8px 32px rgba(0,0,0,0.4);
+            --border-radius: 28px;
+            --transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
         body {
-            background: radial-gradient(circle at 30% 10%, var(--bg1), var(--bg2));
-            min-height: 100vh; display: flex; justify-content: center; align-items: center;
-            font-family: 'Segoe UI', system-ui, sans-serif; cursor: none; overflow: hidden;
-            color: var(--text); transition: all 0.3s; padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0f1e;
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .glass { width: 95vw; height: 90vh; background: var(--glass); backdrop-filter: blur(20px);
-            border-radius: 48px; border: 1px solid var(--border); box-shadow: var(--shadow);
-            display: flex; flex-direction: column; transition: 0.2s; max-width: 1400px; }
-        .glass:hover { transform: scale(1.01); }
-        .header { padding: 20px 30px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; align-items: center; }
-        .header h1 { background: linear-gradient(135deg, #ffb3ff, #77ddff); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.4rem; }
-        .user-info { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        input, button, select { background: rgba(0,0,0,0.6); border: 1px solid #77aaff; border-radius: 60px;
-            padding: 8px 20px; color: white; font-weight: bold; outline: none; }
-        body.light input, body.light button, body.light select { background: rgba(0,0,0,0.15); color: #000; }
-        button { background: linear-gradient(135deg, #5f4bd0, #2cb67d); cursor: pointer; transition: 0.2s; }
-        button:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
-        .main-area { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 280px; background: rgba(0,0,0,0.45); border-right: 1px solid var(--border);
-            padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .sidebar h3 { margin-bottom: 5px; color: #ccddff; }
-        #online-users-list { list-style: none; }
-        #online-users-list li { padding: 8px 12px; margin: 8px 0; background: rgba(255,255,255,0.08);
-            border-radius: 40px; cursor: pointer; transition: 0.1s; }
-        #online-users-list li.active { background: #2c7da0; box-shadow: 0 0 8px #2c7da0; }
-        #online-users-list li:hover { background: rgba(255,255,255,0.2); }
-        .chat-area { flex: 1; display: flex; flex-direction: column; }
-        #messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { background: var(--other-msg); border-radius: 28px; padding: 8px 20px; width: fit-content;
-            max-width: 70%; backdrop-filter: blur(4px); position: relative; }
-        .message.own { align-self: flex-end; background: var(--own-msg); }
-        .message .sender { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
-        .message .content { word-break: break-word; font-size: 16px; }
-        .message .reactions { display: flex; gap: 6px; margin-top: 6px; font-size: 14px; }
-        .message .reactions span { cursor: pointer; padding: 0 6px; border-radius: 20px; background: rgba(255,255,255,0.2); }
-        .reply-indicator { font-size: 11px; opacity: 0.8; margin-bottom: 4px; border-left: 2px solid cyan; padding-left: 8px; }
-        .delivery-status { font-size: 10px; margin-left: 8px; }
-        .input-group { display: flex; gap: 8px; padding: 20px; flex-wrap: wrap; align-items: center; position: relative; }
-        #message-input { flex: 1; }
-        #reply-bar, #pinned-message { font-size: 12px; padding: 0 20px 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        #pinned-message { background: rgba(0,0,0,0.6); border-radius: 20px; margin: 0 20px 8px; padding: 8px; display: none; }
-        #typing-indicator { font-size: 12px; color: #aaa; padding: 0 20px; }
-        .trail-particle { position: fixed; width: 12px; height: 12px; background: radial-gradient(circle, #ff66cc, #44aaff);
-            border-radius: 50%; filter: blur(3px); animation: fadeOut 0.5s forwards; pointer-events: none; z-index: 9999; }
-        @keyframes fadeOut { to { opacity: 0; transform: scale(2.5); filter: blur(8px); } }
-        .room-code-box { background: rgba(0,0,0,0.4); border-radius: 30px; padding: 12px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .room-code-box input { flex: 1; min-width: 100px; }
-        .install-btn { position: fixed; bottom: 80px; left: 20px; background: rgba(0,0,0,0.6); border-radius: 30px; padding: 6px 14px; z-index: 1000; font-size: 12px; }
-
-        /* ===== نافذة الكاميرا ===== */
-        .camera-container {
-            position: fixed; bottom: 20px; right: 20px; width: 320px; height: 240px;
-            background: rgba(10,15,30,0.9); backdrop-filter: blur(10px);
-            border-radius: 20px; border: 2px solid rgba(0,255,255,0.4);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 1000;
-            overflow: hidden; transition: width 0.2s, height 0.2s; min-width: 200px; min-height: 150px;
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at 30% 20%, #0b1120, #010101);
+            z-index: 9999;
+            transition: opacity 0.6s ease, transform 0.6s ease;
         }
-        .camera-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px;
-            background: rgba(0,0,0,0.5); cursor: grab; user-select: none; }
-        .camera-header span { font-size: 12px; color: #aaa; font-weight: bold; }
-        .camera-controls { display: flex; gap: 4px; }
-        .camera-controls button { background: rgba(255,255,255,0.1); border: none; border-radius: 30px;
-            color: white; font-size: 13px; padding: 2px 8px; cursor: pointer; transition: 0.2s; }
-        .camera-controls button:hover { background: rgba(255,255,255,0.3); }
-        .camera-body { width: 100%; height: calc(100% - 34px); position: relative; background: #000; overflow: hidden; }
-        .camera-body video, .camera-body canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        .camera-body canvas { z-index: 2; pointer-events: none; }
-        .camera-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;
-            flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.7);
-            color: white; z-index: 3; }
-        .camera-overlay.show { display: flex; }
-        .camera-overlay button { margin-top: 10px; background: #5f4bd0; border: none; border-radius: 30px;
-            padding: 6px 16px; color: white; cursor: pointer; }
-        .camera-resize-handle { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px;
-            cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.2) 50%); }
+        #login-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+        #login-screen .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffb3ff, #77ddff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        #login-screen h1 {
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            color: white;
+            font-weight: 300;
+        }
+        #login-screen .input-group {
+            width: 320px;
+            margin: 8px 0;
+        }
+        #login-screen input {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.06);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.3s;
+        }
+        #login-screen input:focus {
+            border-color: #77ddff;
+        }
+        #login-screen button {
+            padding: 14px 50px;
+            background: linear-gradient(135deg, #5f4bd0, #2cb67d);
+            border: none;
+            border-radius: 60px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(44, 182, 125, 0.3);
+        }
+        #login-screen button:hover { transform: scale(1.03); }
+        #login-screen .error {
+            color: #ff6b6b;
+            margin-top: 12px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #login-screen .error.show { opacity: 1; }
 
-        /* ===== لوحة الإيموجي ===== */
+        /* ===== التطبيق الرئيسي ===== */
+        #app {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-chat);
+            position: relative;
+        }
+        #app.active { display: flex; }
+
+        /* الشريط الجانبي (جهات الاتصال) */
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            background: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-header {
+            padding: 20px 16px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-header .profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-header .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5f4bd0, #2cb67d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .sidebar-header .status {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-header .status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot.online { background: #2cb67d; box-shadow: 0 0 8px #2cb67d; }
+        .dot.offline { background: #ff6b6b; }
+        .sidebar-header .actions {
+            display: flex;
+            gap: 8px;
+        }
+        .sidebar-header .actions button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 30px;
+            transition: background 0.2s;
+        }
+        .sidebar-header .actions button:hover { background: rgba(255,255,255,0.05); }
+
+        .sidebar-search {
+            padding: 10px 16px;
+            background: rgba(0,0,0,0.15);
+        }
+        .sidebar-search input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 30px;
+            border: none;
+            background: rgba(255,255,255,0.08);
+            color: white;
+            outline: none;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+        .sidebar-search input:focus { background: rgba(255,255,255,0.15); }
+
+        .contact-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .contact-item:hover { background: rgba(255,255,255,0.05); }
+        .contact-item.active { background: rgba(44, 182, 125, 0.15); }
+        .contact-item .contact-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5f4bd0, #2cb67d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .contact-item .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .contact-item .contact-name {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .contact-item .contact-last {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .contact-item .contact-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* ===== منطقة المحادثة ===== */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-chat);
+            position: relative;
+        }
+        .chat-header {
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            z-index: 2;
+        }
+        .chat-header .chat-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffb3ff, #77ddff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .chat-header .chat-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        .chat-header .chat-status {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .chat-header .chat-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .chat-header .chat-actions button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 30px;
+            transition: background 0.2s;
+        }
+        .chat-header .chat-actions button:hover { background: rgba(255,255,255,0.08); }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background-image: radial-gradient(circle at 20% 30%, rgba(44,182,125,0.03) 0%, transparent 60%);
+        }
+        /* فقاعة الرسالة */
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 18px;
+            border-radius: var(--border-radius);
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            animation: floatIn 0.25s ease;
+            position: relative;
+            align-self: flex-start;
+        }
+        .message-bubble.own {
+            align-self: flex-end;
+            background: rgba(44, 182, 125, 0.25);
+            border-bottom-left-radius: 6px;
+        }
+        .message-bubble .sender {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .message-bubble .content {
+            word-break: break-word;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .message-bubble .content img {
+            max-width: 200px;
+            border-radius: 12px;
+            margin-top: 4px;
+        }
+        .message-bubble .meta {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .message-bubble .meta .status-icon {
+            font-size: 0.75rem;
+        }
+        .message-bubble .reactions {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .message-bubble .reactions span {
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 4px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            transition: transform 0.1s;
+        }
+        .message-bubble .reactions span:hover { transform: scale(1.2); }
+        .message-bubble .reply-indicator {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            border-right: 2px solid #77ddff;
+            padding-right: 8px;
+            margin-bottom: 4px;
+        }
+        .message-bubble .pin-indicator {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            font-size: 0.7rem;
+            background: rgba(255,215,0,0.2);
+            border-radius: 30px;
+            padding: 0 6px;
+        }
+
+        @keyframes floatIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* مؤقت الكتابة */
+        .typing-indicator {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 2px 24px;
+            min-height: 24px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .typing-indicator.show { opacity: 1; }
+
+        /* منطقة الإدخال */
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 60px;
+            border: none;
+            background: rgba(255,255,255,0.07);
+            color: white;
+            outline: none;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+        .input-area input:focus { background: rgba(255,255,255,0.13); }
+        .input-area input::placeholder { color: var(--text-muted); }
+        .input-area button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-area button:hover { background: rgba(255,255,255,0.08); }
+        .input-area button:active { transform: scale(0.9); }
+        .input-area .emoji-btn { font-size: 1.5rem; }
+
+        /* لوحة الإيموجي */
         .emoji-picker {
-            display: none; position: absolute; bottom: 70px; left: 10px;
-            background: rgba(20,30,50,0.95); backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 12px; border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000;
-            max-width: 300px; max-height: 220px; overflow-y: auto;
-            display: none; grid-template-columns: repeat(7, 1fr); gap: 6px;
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(20,30,50,0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            z-index: 999;
+            max-width: 320px;
+            max-height: 220px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
         }
-        .emoji-picker button { background: none; border: none; font-size: 26px; padding: 4px;
-            cursor: pointer; border-radius: 10px; transition: 0.1s; }
-        .emoji-picker button:hover { background: rgba(255,255,255,0.2); transform: scale(1.2); }
-        .emoji-picker.show { display: grid; }
-        .emoji-toggle-btn { font-size: 24px; background: rgba(0,0,0,0.3); border: 1px solid #77aaff;
-            border-radius: 60px; padding: 8px 16px; cursor: pointer; transition: 0.2s; color: white; }
-        .emoji-toggle-btn:hover { background: rgba(255,255,255,0.2); }
-        @media (max-width: 600px) {
-            .camera-container { width: 200px; height: 150px; bottom: 10px; right: 10px; }
-            .camera-controls button { font-size: 11px; padding: 1px 6px; }
-            .sidebar { width: 200px; }
+        .emoji-picker.open { display: grid; }
+        .emoji-picker button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: background 0.1s;
+        }
+        .emoji-picker button:hover { background: rgba(255,255,255,0.15); }
+
+        /* ===== نافذة الفيديو عن بُعد ===== */
+        .remote-video {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: black;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 5000;
+        }
+        .remote-video video {
+            width: 100%;
+            display: block;
+        }
+        .remote-video .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        .remote-video .controls button {
+            background: rgba(255,0,0,0.8);
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
-        /* ===== رسالة حالة الاتصال ===== */
-        .connection-status {
-            font-size: 12px; padding: 4px 12px; border-radius: 30px; background: rgba(0,0,0,0.5);
-            color: #aaa; display: inline-block; margin-right: 10px;
+        /* ===== نافذة الكاميرا المحلية ===== */
+        .local-camera {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 180px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(0,255,255,0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 4000;
+            background: black;
         }
-        .connection-status.online { color: #2cb67d; background: rgba(44,182,125,0.2); }
-        .connection-status.offline { color: #ff6b6b; background: rgba(255,107,107,0.2); }
+        .local-camera video {
+            width: 100%;
+            display: block;
+        }
+        .local-camera .controls {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+        }
+        .local-camera .controls button {
+            background: rgba(0,0,0,0.6);
+            border: none;
+            color: white;
+            border-radius: 30px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
 
-        .remote-video { position: fixed; top: 20px; right: 20px; width: 280px; border-radius: 20px;
-            border: 2px solid white; background: black; z-index: 1000; overflow: hidden; }
-        .remote-video video { width: 100%; border-radius: 20px; }
-        .remote-video button { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none;
-            border-radius: 30px; padding: 4px 10px; cursor: pointer; }
+        /* ===== رسالة "لا توجد محادثة" ===== */
+        .empty-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 10px;
+        }
+        .empty-chat .icon { font-size: 4rem; opacity: 0.4; }
+
+        /* ===== تنسيقات متجاوبة ===== */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; min-width: unset; }
+            .chat-panel { display: none; }
+            .chat-panel.active { display: flex; }
+            .sidebar .back-btn { display: block; }
+        }
+        .back-btn { display: none; }
+
+        /* ===== تأثيرات إضافية ===== */
+        .glass-effect {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .floating-shadow {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .transition-all { transition: var(--transition); }
+        .rounded-full { border-radius: 9999px; }
+
+        /* ===== شريط التمرير المخصص ===== */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
 <body>
-<div class="glass">
-    <div class="header">
-        <h1>📱 مرسال آمن</h1>
-        <div class="user-info">
-            <input type="text" id="my-name" placeholder="اسمك" value="user" autocomplete="off" style="max-width:120px;">
-            <button id="connect-btn">اتصال</button>
-            <span class="connection-status" id="connStatus">⏳ جاري الاتصال...</span>
-        </div>
+
+<!-- ===== شاشة تسجيل الدخول ===== -->
+<div id="login-screen">
+    <div class="logo">💬</div>
+    <h1>واتساب آمن</h1>
+    <div class="input-group">
+        <input type="text" id="login-username" placeholder="اسم المستخدم" autocomplete="username">
     </div>
-    <div class="main-area">
-        <div class="sidebar">
-            <div class="room-code-box">
-                <span>🔑</span>
-                <input type="text" id="room-code" placeholder="رمز الغرفة" value="room1" maxlength="8" style="flex:1; min-width:80px; background:rgba(0,0,0,0.4);">
-                <button id="room-create">إنشاء</button>
-                <button id="room-join">انضمام</button>
+    <div class="input-group">
+        <input type="password" id="login-password" placeholder="كلمة المرور" autocomplete="current-password">
+    </div>
+    <button id="login-btn">دخول</button>
+    <div class="error" id="login-error"></div>
+</div>
+
+<!-- ===== التطبيق الرئيسي ===== -->
+<div id="app">
+    <!-- الشريط الجانبي -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="profile">
+                <div class="avatar" id="my-avatar">U</div>
+                <div>
+                    <div id="my-name-display">مستخدم</div>
+                    <div class="status">
+                        <span class="dot online" id="status-dot"></span>
+                        <span id="status-text">متصل</span>
+                    </div>
+                </div>
             </div>
-            <h3>📡 المتصلون</h3>
-            <ul id="online-users-list"></ul>
-            <button id="fingerprint-btn">🔐 بصمة الأمان</button>
-            <button id="stats-btn">📊 إحصائيات</button>
-            <select id="theme-select"><option value="default">🌙 افتراضي</option><option value="darkGreen">🌲 أخضر داكن</option><option value="midnight">🌌 منتصف الليل</option></select>
-            <div style="display:flex; gap:6px;"><input type="text" id="search-input" placeholder="بحث..."><button id="search-btn">🔍</button></div>
-            <button id="backup-export">💾 نسخ احتياطي</button>
-            <button id="export-chats">📄 تصدير المحادثات</button>
-            <button id="voice-fingerprint-btn">🎤 بصمة الصوت</button>
-            <button id="clear-storage">🗑️ مسح البيانات</button>
+            <div class="actions">
+                <button id="logout-btn" title="تسجيل خروج">🚪</button>
+                <button id="settings-btn" title="الإعدادات">⚙️</button>
+            </div>
         </div>
-        <div class="chat-area">
-            <div id="pinned-message"></div>
-            <div id="typing-indicator"></div>
-            <div id="messages-container"></div>
-            <div id="reply-bar"></div>
-            <div class="input-group" style="position:relative;">
-                <button class="emoji-toggle-btn" id="emoji-toggle-btn" disabled>😊</button>
-                <div class="emoji-picker" id="emoji-picker"></div>
-                <input type="text" id="message-input" placeholder="رسالة مشفرة..." disabled>
-                <button id="voice-input-btn" disabled>🎤</button>
-                <button id="attach-file-btn" disabled>🖼️</button>
-                <button id="reminder-btn" disabled>⏰</button>
-                <button id="send-btn" disabled>✉️</button>
-                <button id="video-call-btn" disabled>📹</button>
-                <button id="screen-share-btn" disabled>🖥️</button>
-                <button id="live-stream-btn" disabled>📡</button>
+        <div class="sidebar-search">
+            <input type="text" id="search-contacts" placeholder="بحث في جهات الاتصال...">
+        </div>
+        <div class="contact-list" id="contact-list"></div>
+    </div>
+
+    <!-- منطقة المحادثة -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+            <div class="chat-avatar" id="chat-avatar">🤖</div>
+            <div class="chat-name" id="chat-name">اختر محادثة</div>
+            <div class="chat-status" id="chat-status"></div>
+            <div class="chat-actions">
+                <button id="video-call-btn" title="مكالمة فيديو">📹</button>
+                <button id="voice-call-btn" title="مكالمة صوتية">📞</button>
+                <button id="attach-btn" title="مرفق">📎</button>
             </div>
-            <div id="file-preview-area"></div>
+        </div>
+        <div class="messages-area" id="messages-area">
+            <div class="empty-chat">
+                <div class="icon">💬</div>
+                <p>اختر محادثة لتبدأ المراسلة المشفرة</p>
+            </div>
+        </div>
+        <div class="typing-indicator" id="typing-indicator"></div>
+        <div class="input-area" style="position:relative;">
+            <button class="emoji-btn" id="emoji-toggle">😊</button>
+            <div class="emoji-picker" id="emoji-picker"></div>
+            <input type="text" id="message-input" placeholder="اكتب رسالة..." disabled>
+            <button id="send-btn">📨</button>
         </div>
     </div>
 </div>
-<div id="cursor-trail"></div>
 
-<!-- نافذة الكاميرا -->
-<div class="camera-container" id="cameraContainer">
-    <div class="camera-header">
-        <span>📷 الكاميرا</span>
-        <div class="camera-controls">
-            <button id="camera-toggle-btn" title="تشغيل/إيقاف">⏸️</button>
-            <button id="camera-switch-btn" title="تبديل الكاميرا">🔄</button>
-            <button id="camera-zoom-in">➕</button>
-            <button id="camera-zoom-out">➖</button>
-            <button id="camera-close-btn">✖</button>
-        </div>
-    </div>
-    <div class="camera-body">
-        <video id="camera-video" autoplay playsinline muted></video>
-        <canvas id="camera-canvas"></canvas>
-        <div class="camera-overlay" id="cameraOverlay">
-            <span>📷 الكاميرا غير متاحة</span>
-            <button id="camera-retry-btn">إعادة المحاولة</button>
-        </div>
-    </div>
-    <div class="camera-resize-handle"></div>
-</div>
+<!-- ===== نافذة الفيديو عن بُعد (تضاف ديناميكياً) ===== -->
+<!-- ===== الكاميرا المحلية (تضاف ديناميكياً) ===== -->
 
-<div class="theme-toggle" id="themeToggle">🌙 الوضع الليلي</div>
-<div class="install-btn" id="install-btn" style="display:none;">📲 تثبيت التطبيق</div>
-
+<!-- ===== مكتبات خارجية ===== -->
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 <script>
     // ==================================================================
-    // 1. التشفير RSA + AES
+    //  1. التشفير (RSA-2048 + AES-256-GCM)
     // ==================================================================
-    let myKeyPair, myUserId, peer, currentConn, currentRecipientId;
-    let users = new Map();
-    let myPublicKeyPem;
-    let blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-    let pendingMessages = JSON.parse(localStorage.getItem('pendingMessages') || '[]');
-    let chats = JSON.parse(localStorage.getItem('chats') || '{}');
-    let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-    let pinnedMessage = null, replyToMessage = null;
-    let stats = { messagesSent:0, messagesReceived:0, sessionStart:Date.now() };
-    let typingTimeout, isTyping=false;
-    let pc=null, localStream=null, isScreenSharing=false, liveStreamPeer=null;
-    let roomCode = localStorage.getItem('lastRoom') || 'room1';
-    let connectionAttempts = 0;
-    const MAX_RETRIES = 3;
-    const PEER_HOSTS = [
-        { host: '0.peerjs.com', port: 443, secure: true },
-        { host: 'peerjs-server.herokuapp.com', port: 443, secure: true },
-        { host: '0.peerjs.com', port: 80, secure: false }
-    ];
+    let myKeyPair = null;
+    let myPublicKeyPem = null;
+    let myUserId = null;
+    let myPassword = null;
+    let myName = '';
 
+    // تخزين المفاتيح والمستخدمين
+    let users = new Map(); // userId -> { name, publicKey, conn, status }
+    let currentPeer = null;
+    let currentConn = null;
+    let currentRecipientId = null;
+
+    // بيانات المحادثات المحلية
+    let chats = JSON.parse(localStorage.getItem('chats') || '{}');
+    let pendingMessages = JSON.parse(localStorage.getItem('pendingMessages') || '[]');
+
+    // متغيرات WebRTC
+    let pc = null;
+    let localStream = null;
+    let remoteStream = null;
+
+    // حالة التطبيق
+    let isLoggedIn = false;
+    let isCallActive = false;
+
+    // ===== دوال التشفير =====
     async function generateKeyPair() {
-        return await crypto.subtle.generateKey({
-            name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: "SHA-256"
-        }, true, ["encrypt","decrypt"]);
+        return await crypto.subtle.generateKey(
+            { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: "SHA-256" },
+            true, ["encrypt","decrypt"]
+        );
     }
     function ab2b64(ab) { return btoa(String.fromCharCode(...new Uint8Array(ab))); }
     function b642ab(b64) { return new Uint8Array(atob(b64).split('').map(c=>c.charCodeAt(0))).buffer; }
-    async function encryptForPeer(message, recipientPublicKey, isImage=false, replyToId=null) {
+    async function exportPublicKey(key) { return ab2b64(await crypto.subtle.exportKey("spki", key)); }
+    async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", b642ab(pem), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); }
+    async function encryptForPeer(message, recipientPublicKey, isImage=false) {
         const sessionKey = crypto.getRandomValues(new Uint8Array(32));
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const aesKey = await crypto.subtle.importKey("raw", sessionKey, { name: "AES-GCM" }, false, ["encrypt"]);
         const encryptedMsg = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, new TextEncoder().encode(message));
         const encryptedKey = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, recipientPublicKey, sessionKey);
-        return { iv: ab2b64(iv), encryptedData: ab2b64(encryptedMsg), encryptedKey: ab2b64(encryptedKey), isImage, replyTo: replyToId };
+        return { iv: ab2b64(iv), encryptedData: ab2b64(encryptedMsg), encryptedKey: ab2b64(encryptedKey), isImage };
     }
     async function decryptMessage(pkg) {
         const iv = b642ab(pkg.iv);
@@ -261,738 +707,580 @@
         const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, encryptedData);
         return new TextDecoder().decode(decrypted);
     }
-    async function exportPublicKey() { return ab2b64(await crypto.subtle.exportKey("spki", myKeyPair.publicKey)); }
-    async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", b642ab(pem), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); }
-    async function getFingerprint() {
-        const exported = await crypto.subtle.exportKey("spki", myKeyPair.publicKey);
-        const hash = await crypto.subtle.digest("SHA-256", exported);
-        return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
-    }
-
-    function saveMessageToChat(recipientId, msg, isOwn, type='text', msgId=null) {
-        if(!chats[recipientId]) chats[recipientId]=[];
-        const msgObj = { from: isOwn?myUserId:recipientId, text: msg, timestamp:Date.now(), type, msgId:msgId||Date.now() };
-        chats[recipientId].push(msgObj);
-        localStorage.setItem('chats', JSON.stringify(chats));
-    }
-
-    function loadAllChats() {
-        const container = document.getElementById('messages-container');
-        container.innerHTML = '';
-        if (currentRecipientId && chats[currentRecipientId]) {
-            chats[currentRecipientId].forEach(msg => {
-                appendMessage(msg.text, msg.from === myUserId, msg.from, msg.type==='image', msg.msgId);
-            });
-        } else {
-            for (let [id, msgs] of Object.entries(chats)) {
-                msgs.forEach(msg => {
-                    appendMessage(msg.text, msg.from === myUserId, msg.from, msg.type==='image', msg.msgId);
-                });
-            }
-        }
-        container.scrollTop = container.scrollHeight;
-    }
-    window.addEventListener('load', () => setTimeout(loadAllChats, 100));
-    function loadChatHistory(peerId) { currentRecipientId = peerId; loadAllChats(); }
 
     // ==================================================================
-    // 2. الإيموجي (مستقر)
+    //  2. إدارة الحسابات (تسجيل الدخول)
     // ==================================================================
-    const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','👍','👎','👏','🙌','🤲','🤝','🙏','✌️','🤟','🤘','👌','🤌','🤞','🤙','👋','🖐️','✋','🖖','👀','👁️','🧠','🫀','🫁','💋','👄','🦷','👅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🪐','🌍','🌎','🌏','🌐','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','⚡','🔥','💧','🌊','🌟','🌈','☂️','☔','⛱️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌬️','🧘','🛀','🛌','🧖','🧗','🧘‍♂️','🧘‍♀️','🤸','🤼','🤽','🤾','🤹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🦸','🦹','🧠','🦾','🦿','🦴','🦷','👀','👁️','👅','👄','🫀','🫁','🧬','🦠','🧫','🧪','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🧺','🧻','🧼','🧽','🧴','🪒','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🧰','🔧','🔩','⚙️','🗜️','⚖️','🔗','⛓️','🧲','⚔️','🗡️','🛡️','🏹','🪃','🪄','🪢','🪣','🪤','🪥','🪦','🪧','🪨','🪶','🪷','🪹','🪺','🪻','🪼','🪽','🪾','🪿','🫀','🫁','🫂','🫃','🫄','🫅','🫆','🫇','🫈','🫉','🫊','🫋','🫌','🫍','🫎','🫏','🫐','🫑','🫒','🫓','🫔','🫕','🫖','🫗','🫘','🫙','🫚','🫛','🫜','🫝','🫞','🫟','🫠'];
-
-    const emojiToggleBtn = document.getElementById('emoji-toggle-btn');
-    const emojiPicker = document.getElementById('emoji-picker');
-
-    function buildEmojiPicker() {
-        emojiPicker.innerHTML = '';
-        emojis.forEach(emoji => {
-            const btn = document.createElement('button');
-            btn.textContent = emoji;
-            btn.type = 'button';
-            emojiPicker.appendChild(btn);
-        });
+    function loadAccounts() {
+        try { return JSON.parse(localStorage.getItem('accounts') || '{}'); } catch { return {}; }
     }
-    buildEmojiPicker();
-
-    emojiToggleBtn.onclick = function(e) {
-        e.stopPropagation();
-        emojiPicker.classList.toggle('show');
-    };
-    document.addEventListener('click', function(e) {
-        if (emojiPicker.classList.contains('show')) {
-            if (!emojiPicker.contains(e.target) && !emojiToggleBtn.contains(e.target)) {
-                emojiPicker.classList.remove('show');
-            }
-        }
-    });
-    emojiPicker.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (e.target.tagName === 'BUTTON') {
-            const input = document.getElementById('message-input');
-            input.value += e.target.textContent;
-            input.focus();
-        }
-    });
-
-    // ==================================================================
-    // 3. الكاميرا المتطورة
-    // ==================================================================
-    let cameraStream = null; let cameraEnabled = false; let useFrontCamera = false;
-    const cameraContainer = document.getElementById('cameraContainer');
-    const cameraVideo = document.getElementById('camera-video');
-    const cameraCanvas = document.getElementById('camera-canvas');
-    const cameraOverlay = document.getElementById('cameraOverlay');
-    const cameraToggleBtn = document.getElementById('camera-toggle-btn');
-    const cameraSwitchBtn = document.getElementById('camera-switch-btn');
-    const cameraZoomIn = document.getElementById('camera-zoom-in');
-    const cameraZoomOut = document.getElementById('camera-zoom-out');
-    const cameraCloseBtn = document.getElementById('camera-close-btn');
-    const cameraRetryBtn = document.getElementById('camera-retry-btn');
-
-    async function startCamera() {
-        try {
-            const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
-            cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-            cameraVideo.srcObject = cameraStream;
-            await cameraVideo.play();
-            cameraEnabled = true;
-            cameraToggleBtn.textContent = '⏸️';
-            cameraOverlay.classList.remove('show');
-            console.log('📷 الكاميرا تعمل');
-            return true;
-        } catch (err) {
-            console.error('❌ فشل تشغيل الكاميرا:', err);
-            cameraOverlay.classList.add('show');
-            cameraOverlay.querySelector('span').textContent = '❌ تعذر الوصول إلى الكاميرا';
-            return false;
-        }
-    }
-    function stopCamera() {
-        if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; }
-        cameraVideo.srcObject = null;
-        cameraEnabled = false;
-        cameraToggleBtn.textContent = '▶️';
-    }
-    cameraToggleBtn.onclick = () => { if (cameraEnabled) stopCamera(); else startCamera(); };
-    cameraSwitchBtn.onclick = async () => { useFrontCamera = !useFrontCamera; if (cameraEnabled) { stopCamera(); await startCamera(); } };
-    let camW = 320, camH = 240;
-    cameraZoomIn.onclick = () => { camW += 30; camH += 22; cameraContainer.style.width = camW + 'px'; cameraContainer.style.height = camH + 'px'; };
-    cameraZoomOut.onclick = () => { camW = Math.max(200, camW - 30); camH = Math.max(150, camH - 22); cameraContainer.style.width = camW + 'px'; cameraContainer.style.height = camH + 'px'; };
-    cameraCloseBtn.onclick = () => { cameraContainer.style.display = 'none'; stopCamera(); };
-    cameraRetryBtn.onclick = startCamera;
-
-    let isDraggingCam = false, dragOffX = 0, dragOffY = 0;
-    cameraContainer.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.camera-controls') || e.target.closest('.camera-resize-handle')) return;
-        isDraggingCam = true;
-        const rect = cameraContainer.getBoundingClientRect();
-        dragOffX = e.clientX - rect.left;
-        dragOffY = e.clientY - rect.top;
-        cameraContainer.style.cursor = 'grabbing';
-    });
-    document.addEventListener('mousemove', (e) => {
-        if (!isDraggingCam) return;
-        let left = e.clientX - dragOffX;
-        let top = e.clientY - dragOffY;
-        left = Math.max(0, Math.min(window.innerWidth - cameraContainer.offsetWidth, left));
-        top = Math.max(0, Math.min(window.innerHeight - cameraContainer.offsetHeight, top));
-        cameraContainer.style.left = left + 'px';
-        cameraContainer.style.top = top + 'px';
-        cameraContainer.style.right = 'auto';
-        cameraContainer.style.bottom = 'auto';
-    });
-    document.addEventListener('mouseup', () => { isDraggingCam = false; cameraContainer.style.cursor = 'default'; });
-    setTimeout(startCamera, 600);
-
-    // ==================================================================
-    // 4. الدوال الأساسية (Typing, Delivery, LiveStream, Reminder, Stats, Themes, Reply, Pin, Search)
-    // ==================================================================
-    function sendTyping(status) { if(currentConn?.open) currentConn.send({ type:'typing', status }); }
-    function startTyping() {
-        if(typingTimeout) clearTimeout(typingTimeout);
-        if(!isTyping && currentConn){ isTyping=true; sendTyping(true); }
-        typingTimeout=setTimeout(()=>{ if(isTyping){ isTyping=false; sendTyping(false); } },1500);
-    }
-    function showTypingIndicator(status, peerId) {
-        const el=document.getElementById('typing-indicator');
-        if(el) el.textContent=status?`${users.get(peerId)?.name||peerId.slice(0,6)} يكتب...`:'';
-    }
-    function sendDeliveryReceipt(peerId, msgId) { users.get(peerId)?.conn?.send({ type:'delivery', msgId }); }
-    function showDeliveryConfirmed(msgId) {
-        const el=document.querySelector(`.message[data-msgid="${msgId}"] .delivery-status`);
-        if(el) el.textContent='✓✓';
-    }
-    async function startLiveStream() {
-        if(!currentConn) return alert("اختر مستلم أولاً");
-        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-        liveStreamPeer=new Peer(myUserId+'_live');
-        liveStreamPeer.on('call',call=>{ call.answer(stream); showLiveStreamVideo(call); });
-        liveStreamPeer.on('open',id=>{ currentConn.send({ type:'liveStreamOffer', streamId:id }); });
-    }
-    function showLiveStreamVideo(call) {
-        let div=document.querySelector('.live-stream');
-        if(!div){ div=document.createElement('div'); div.className='live-stream'; div.innerHTML='<video autoplay></video><button>إغلاق</button>'; document.body.appendChild(div); div.querySelector('button').onclick=()=>div.remove(); }
-        call.on('stream',s=>div.querySelector('video').srcObject=s);
-    }
-    async function joinLiveStream(streamId) {
-        const call=peer.call(streamId, await navigator.mediaDevices.getUserMedia({audio:true}));
-        showLiveStreamVideo(call);
-    }
-    function setReminder(message, delaySeconds) {
-        const reminder={message, time:Date.now()+delaySeconds*1000, id:Date.now()};
-        reminders.push(reminder);
-        localStorage.setItem('reminders',JSON.stringify(reminders));
-        appendSystemMessage(`⏰ تذكير: "${message}" بعد ${delaySeconds} ثانية`);
-        setTimeout(()=>{ alert(`🔔 تذكير: ${message}`); reminders=reminders.filter(r=>r.id!==reminder.id); localStorage.setItem('reminders',JSON.stringify(reminders)); }, delaySeconds*1000);
-    }
-    function showStats() {
-        const dur=Math.floor((Date.now()-stats.sessionStart)/60);
-        alert(`📊 إحصائيات الأمان:\nرسائل مرسلة مشفرة: ${stats.messagesSent}\nرسائل مستقبلة مفككة: ${stats.messagesReceived}\nمدة الجلسة الآمنة: ${dur} دقيقة`);
-    }
-    const themes={ default:{}, darkGreen:{'--bg':'#0a1f1a','--text':'#ccffcc','--msg-own':'#1e5631','--msg-other':'#2d5a3b'}, midnight:{'--bg':'#0a0a2a','--text':'#c0c0ff','--msg-own':'#3a3a8a','--msg-other':'#2a2a5a'} };
-    function applyTheme(themeName) { const t=themes[themeName]; if(t) for(let [k,v] of Object.entries(t)) document.documentElement.style.setProperty(k,v); localStorage.setItem('userTheme',themeName); }
-    function setReplyTo(msgId, text, sender) {
-        replyToMessage={id:msgId, text, sender};
-        const bar=document.getElementById('reply-bar');
-        if(bar) bar.innerHTML=`↩️ الرد على ${sender}: "${text.slice(0,40)}" <button id="cancel-reply">×</button>`;
-        document.getElementById('cancel-reply')?.addEventListener('click',()=>{ replyToMessage=null; bar.innerHTML=''; });
-    }
-    function pinMessage(msgId, text) {
-        pinnedMessage={id:msgId, text};
-        localStorage.setItem('pinnedMessage',JSON.stringify(pinnedMessage));
-        const div=document.getElementById('pinned-message');
-        if(div){ div.style.display='flex'; div.innerHTML=`📌 رسالة مثبتة: ${text} <button id="unpin">إزالة</button>`; document.getElementById('unpin')?.addEventListener('click',()=>{ pinnedMessage=null; localStorage.removeItem('pinnedMessage'); div.style.display='none'; }); }
-    }
-    function searchMessages(query) {
-        if(!query.trim()) return;
-        const msgs=document.querySelectorAll('#messages-container .message');
-        let first=null;
-        msgs.forEach(m=>{
-            const content=m.querySelector('.content')?.innerText||'';
-            if(content.toLowerCase().includes(query.toLowerCase())){
-                m.style.backgroundColor='#ffff99';
-                m.style.color='black';
-                if(!first) first=m;
-            } else { m.style.backgroundColor=''; m.style.color=''; }
-        });
-        if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
+    function saveAccounts(accounts) {
+        localStorage.setItem('accounts', JSON.stringify(accounts));
     }
 
-    // ==================================================================
-    // 5. عرض وإرسال الرسائل
-    // ==================================================================
-    function appendMessage(text, isOwn, senderId, isImage=false, msgId=null, replyToId=null) {
-        const container = document.getElementById('messages-container');
-        const div = document.createElement('div'); div.className=`message ${isOwn?'own':''}`; if(msgId) div.setAttribute('data-msgid',msgId);
-        const senderSpan = document.createElement('div'); senderSpan.className='sender'; senderSpan.textContent = isOwn?'أنت':(users.get(senderId)?.name||senderId.slice(0,6)); div.appendChild(senderSpan);
-        if(replyToId && chats[currentRecipientId]){
-            const orig=chats[currentRecipientId].find(m=>m.msgId==replyToId);
-            if(orig){ const rd=document.createElement('div'); rd.className='reply-indicator'; rd.textContent=`↩️ رداً على: ${orig.text.slice(0,40)}`; div.appendChild(rd); }
-        }
-        const contentDiv = document.createElement('div'); contentDiv.className='content';
-        if(isImage && text.startsWith('data:image')) contentDiv.innerHTML = `<img src="${text}" style="max-width:200px; border-radius:12px;">`;
-        else contentDiv.textContent = text;
-        div.appendChild(contentDiv);
-        const reactionsDiv = document.createElement('div'); reactionsDiv.className='reactions';
-        ['👍','❤️','😂','😮'].forEach(r=>{ const span=document.createElement('span'); span.textContent=r; span.onclick=()=>{ if(currentConn) currentConn.send({type:'reaction', reaction:r, msgId:msgId}); }; reactionsDiv.appendChild(span); });
-        div.appendChild(reactionsDiv);
-        const statusSpan = document.createElement('span'); statusSpan.className='delivery-status'; statusSpan.textContent=isOwn?'✓':''; div.appendChild(statusSpan);
-        const replyBtn = document.createElement('span'); replyBtn.textContent='↩️'; replyBtn.style.cursor='pointer'; replyBtn.style.marginLeft='8px'; replyBtn.onclick=()=>setReplyTo(msgId, text, senderSpan.textContent); div.appendChild(replyBtn);
-        const pinBtn = document.createElement('span'); pinBtn.textContent='📌'; pinBtn.style.cursor='pointer'; pinBtn.style.marginLeft='8px'; pinBtn.onclick=()=>pinMessage(msgId, text); div.appendChild(pinBtn);
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
-    }
-    function appendSystemMessage(msg, isOwn=false) { appendMessage(msg, isOwn, "نظام", false, Date.now()); }
-
-    async function sendMessage(text, isImage=false, imageDataURL=null) {
-        if (!currentConn) {
-            if(!currentRecipientId) { appendSystemMessage("⚠️ اختر مستلم أولاً"); return; }
-            pendingMessages.push({ to: currentRecipientId, text, isImage, dataURL:imageDataURL, timestamp:Date.now() });
-            localStorage.setItem('pendingMessages',JSON.stringify(pendingMessages));
-            appendSystemMessage(`📦 رسالة مؤجلة (غير متصل)`);
+    document.getElementById('login-btn').onclick = async () => {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        const errorEl = document.getElementById('login-error');
+        if (!username || !password) {
+            errorEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
+            errorEl.classList.add('show');
             return;
         }
-        if (!currentRecipientId) { appendSystemMessage("⚠️ اختر مستلم أولاً"); return; }
-        const recipientInfo = users.get(currentRecipientId);
-        if (!recipientInfo || !recipientInfo.publicKey) return alert("المفتاح العام غير متوفر بعد");
-        let content = text; if (isImage && imageDataURL) content = imageDataURL;
-        const msgId = Date.now();
-        const encrypted = await encryptForPeer(content, recipientInfo.publicKey, isImage, replyToMessage?.id || null);
-        currentConn.send({ type: 'message', encrypted, msgId });
-        appendMessage(`أنت: ${isImage? '📷 صورة' : text}`, true, myUserId, isImage, msgId);
-        saveMessageToChat(currentRecipientId, isImage? 'صورة' : text, true, isImage?'image':'text', msgId);
-        stats.messagesSent++;
-        if(replyToMessage) { replyToMessage=null; document.getElementById('reply-bar').innerHTML=''; }
+        const accounts = loadAccounts();
+        if (accounts[username] && accounts[username] !== password) {
+            errorEl.textContent = 'كلمة مرور خاطئة';
+            errorEl.classList.add('show');
+            return;
+        }
+        // تسجيل مستخدم جديد أو تسجيل دخول
+        accounts[username] = password;
+        saveAccounts(accounts);
+        myUserId = username;
+        myPassword = password;
+        myName = username;
+        errorEl.classList.remove('show');
+        // بدء الاتصال عبر PeerJS
+        await startApp();
+    };
+
+    // ==================================================================
+    //  3. تطبيق PeerJS
+    // ==================================================================
+    async function startApp() {
+        // توليد المفاتيح
+        myKeyPair = await generateKeyPair();
+        myPublicKeyPem = await exportPublicKey(myKeyPair.publicKey);
+
+        // إظهار الواجهة الرئيسية
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.add('active');
+        document.getElementById('my-name-display').textContent = myName;
+        document.getElementById('my-avatar').textContent = myName.charAt(0).toUpperCase();
+
+        // إنشاء Peer
+        currentPeer = new Peer(myUserId, {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true
+        });
+
+        currentPeer.on('open', (id) => {
+            console.log('✅ متصل بـ PeerJS:', id);
+            // إرسال المفتاح العام للمستخدمين الجدد
+            // لكن PeerJS لا يسمح ببث مباشر، سنستخدم الاتصالات النشطة
+            updateStatus('online');
+            // معالجة قائمة جهات الاتصال المخزنة
+            loadContactsFromStorage();
+        });
+
+        currentPeer.on('connection', (conn) => {
+            setupConnection(conn);
+        });
+
+        currentPeer.on('error', (err) => {
+            console.warn('⚠️ خطأ PeerJS:', err);
+        });
+
+        // استعادة المحادثات القديمة
+        loadChatHistory();
+
+        // بدء معالجة الرسائل المؤجلة
+        processPendingQueue();
+
+        // تمكين الإدخال
+        document.getElementById('message-input').disabled = false;
+        document.getElementById('send-btn').disabled = false;
     }
+
+    // ==================================================================
+    //  4. إدارة جهات الاتصال والمحادثات
+    // ==================================================================
+    function loadContactsFromStorage() {
+        // في هذا التطبيق، جهات الاتصال هي المستخدمون الذين نتواصل معهم
+        // سيتم إضافتهم عند أول اتصال
+        const contactList = document.getElementById('contact-list');
+        contactList.innerHTML = '';
+        for (let [id, info] of users) {
+            if (id === myUserId) continue;
+            addContactToList(id, info.name);
+        }
+    }
+
+    function addContactToList(userId, name) {
+        const list = document.getElementById('contact-list');
+        // تجنب التكرار
+        if (list.querySelector(`[data-id="${userId}"]`)) return;
+        const div = document.createElement('div');
+        div.className = 'contact-item';
+        div.dataset.id = userId;
+        div.innerHTML = `
+            <div class="contact-avatar">${name.charAt(0).toUpperCase()}</div>
+            <div class="contact-info">
+                <div class="contact-name">${name}</div>
+                <div class="contact-last">${chats[userId]?.length ? 'آخر رسالة...' : 'بدء محادثة'}</div>
+            </div>
+            <div class="contact-time">${new Date().toLocaleTimeString()}</div>
+        `;
+        div.onclick = () => openChat(userId);
+        list.appendChild(div);
+    }
+
+    function openChat(userId) {
+        const info = users.get(userId);
+        if (!info) {
+            // إذا لم يكن المستخدم في الخريطة، نحاول الاتصال به
+            connectToPeer(userId);
+            return;
+        }
+        currentRecipientId = userId;
+        currentConn = info.conn;
+        // تحديث واجهة المحادثة
+        document.getElementById('chat-name').textContent = info.name || userId;
+        document.getElementById('chat-avatar').textContent = (info.name || userId).charAt(0).toUpperCase();
+        document.getElementById('chat-status').textContent = info.status === 'online' ? '🟢 متصل' : '⚪ غير متصل';
+        // تمكين الإدخال
+        document.getElementById('message-input').disabled = false;
+        // عرض المحادثة
+        loadChatHistory(userId);
+        // تمييز العنصر النشط
+        document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+        const activeEl = document.querySelector(`.contact-item[data-id="${userId}"]`);
+        if (activeEl) activeEl.classList.add('active');
+        // في الشاشات الصغيرة: إخفاء القائمة الجانبية
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').style.display = 'none';
+            document.getElementById('chat-panel').classList.add('active');
+        }
+    }
+
+    function loadChatHistory(userId) {
+        const area = document.getElementById('messages-area');
+        area.innerHTML = '';
+        if (chats[userId]) {
+            chats[userId].forEach(msg => {
+                renderMessage(msg.text, msg.from === myUserId, msg.from, msg.isImage, msg.msgId);
+            });
+        }
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function renderMessage(text, isOwn, senderId, isImage=false, msgId=null) {
+        const area = document.getElementById('messages-area');
+        const div = document.createElement('div');
+        div.className = `message-bubble ${isOwn ? 'own' : ''}`;
+        if (msgId) div.dataset.msgid = msgId;
+        const senderSpan = document.createElement('div');
+        senderSpan.className = 'sender';
+        senderSpan.textContent = isOwn ? 'أنت' : (users.get(senderId)?.name || senderId);
+        div.appendChild(senderSpan);
+        const content = document.createElement('div');
+        content.className = 'content';
+        if (isImage && text.startsWith('data:image')) {
+            const img = document.createElement('img');
+            img.src = text;
+            content.appendChild(img);
+        } else {
+            content.textContent = text;
+        }
+        div.appendChild(content);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const time = document.createElement('span');
+        time.textContent = new Date().toLocaleTimeString();
+        meta.appendChild(time);
+        const status = document.createElement('span');
+        status.className = 'status-icon';
+        status.textContent = isOwn ? '✓' : '';
+        meta.appendChild(status);
+        div.appendChild(meta);
+        // إيموجي تفاعل
+        const reactions = document.createElement('div');
+        reactions.className = 'reactions';
+        ['👍','❤️','😂','😮'].forEach(r => {
+            const span = document.createElement('span');
+            span.textContent = r;
+            span.onclick = () => sendReaction(r, msgId);
+            reactions.appendChild(span);
+        });
+        div.appendChild(reactions);
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function sendReaction(reaction, msgId) {
+        if (!currentConn) return;
+        currentConn.send({ type: 'reaction', reaction, msgId });
+    }
+
+    // ==================================================================
+    //  5. إدارة الاتصالات مع الأقران
+    // ==================================================================
+    function connectToPeer(peerId) {
+        if (!currentPeer) return;
+        const conn = currentPeer.connect(peerId);
+        conn.on('open', () => {
+            // إرسال المفتاح العام
+            conn.send({ type: 'publicKey', publicKey: myPublicKeyPem, name: myName });
+            users.set(peerId, { name: peerId, publicKey: null, conn, status: 'online' });
+            setupConnection(conn);
+        });
+        conn.on('error', (err) => console.warn('خطأ في الاتصال:', err));
+    }
+
+    function setupConnection(conn) {
+        conn.on('data', async (data) => {
+            if (data.type === 'publicKey') {
+                const pubKey = await importPublicKey(data.publicKey);
+                const name = data.name || conn.peer;
+                users.set(conn.peer, { name, publicKey: pubKey, conn, status: 'online' });
+                addContactToList(conn.peer, name);
+                appendSystemMessage(`🔑 استلام مفتاح عام من ${name}`);
+            } else if (data.type === 'message') {
+                const text = await decryptMessage(data.encrypted);
+                const isImage = data.encrypted.isImage;
+                const fromId = conn.peer;
+                // حفظ الرسالة
+                if (!chats[fromId]) chats[fromId] = [];
+                chats[fromId].push({ from: fromId, text, timestamp: Date.now(), isImage, msgId: data.msgId });
+                localStorage.setItem('chats', JSON.stringify(chats));
+                // عرض إذا كانت المحادثة مفتوحة
+                if (currentRecipientId === fromId) {
+                    renderMessage(text, false, fromId, isImage, data.msgId);
+                }
+                // تحديث القائمة الجانبية
+                updateContactLast(fromId, text);
+                // إشعار
+                playNotification();
+                // تأكيد الاستلام
+                conn.send({ type: 'delivery', msgId: data.msgId });
+            } else if (data.type === 'delivery') {
+                // تحديث حالة التسليم (اختياري)
+                const el = document.querySelector(`.message-bubble[data-msgid="${data.msgId}"] .status-icon`);
+                if (el) el.textContent = '✓✓';
+            } else if (data.type === 'typing') {
+                showTyping(data.isTyping, conn.peer);
+            } else if (data.type === 'webrtc-offer') {
+                handleWebRTCOffer(conn.peer, data.offer);
+            } else if (data.type === 'webrtc-answer') {
+                if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            } else if (data.type === 'ice-candidate') {
+                if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } else if (data.type === 'reaction') {
+                appendSystemMessage(`👍 تفاعل ${data.reaction} من ${users.get(conn.peer)?.name}`);
+            }
+        });
+        conn.on('close', () => {
+            users.delete(conn.peer);
+            // إزالة من القائمة الجانبية
+            const el = document.querySelector(`.contact-item[data-id="${conn.peer}"]`);
+            if (el) el.remove();
+            if (currentRecipientId === conn.peer) {
+                document.getElementById('chat-name').textContent = 'اختر محادثة';
+                document.getElementById('message-input').disabled = true;
+            }
+        });
+    }
+
+    // ==================================================================
+    //  6. إرسال الرسائل
+    // ==================================================================
+    async function sendMessage(text, isImage=false, imageDataURL=null) {
+        if (!currentConn) {
+            // حفظ مؤقتاً
+            pendingMessages.push({ to: currentRecipientId, text, isImage, dataURL: imageDataURL, timestamp: Date.now() });
+            localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+            appendSystemMessage('📦 رسالة مؤجلة (غير متصل)');
+            return;
+        }
+        const recipient = users.get(currentRecipientId);
+        if (!recipient || !recipient.publicKey) {
+            alert('المفتاح العام غير متوفر بعد');
+            return;
+        }
+        let content = text;
+        if (isImage && imageDataURL) content = imageDataURL;
+        const msgId = Date.now();
+        const encrypted = await encryptForPeer(content, recipient.publicKey, isImage);
+        currentConn.send({ type: 'message', encrypted, msgId });
+        // حفظ محلياً
+        if (!chats[currentRecipientId]) chats[currentRecipientId] = [];
+        chats[currentRecipientId].push({ from: myUserId, text, timestamp: Date.now(), isImage, msgId });
+        localStorage.setItem('chats', JSON.stringify(chats));
+        renderMessage(text, true, myUserId, isImage, msgId);
+        updateContactLast(currentRecipientId, text);
+    }
+
     async function processPendingQueue() {
-        for(let i=0; i<pendingMessages.length; i++) {
+        for (let i = 0; i < pendingMessages.length; i++) {
             const msg = pendingMessages[i];
-            if(users.has(msg.to) && users.get(msg.to).conn && users.get(msg.to).publicKey) {
-                currentRecipientId = msg.to; currentConn = users.get(msg.to).conn;
+            const info = users.get(msg.to);
+            if (info && info.conn && info.publicKey) {
+                currentRecipientId = msg.to;
+                currentConn = info.conn;
                 await sendMessage(msg.text, msg.isImage, msg.dataURL);
-                pendingMessages.splice(i,1); i--;
+                pendingMessages.splice(i, 1);
+                i--;
             }
         }
         localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
     }
 
-    // ==================================================================
-    // 6. الاتصال عبر PeerJS مع إعادة المحاولة التلقائية
-    // ==================================================================
-    function enableUI(enabled) {
-        const elements = ['message-input','send-btn','video-call-btn','voice-input-btn','attach-file-btn','screen-share-btn','live-stream-btn','reminder-btn','emoji-toggle-btn'];
-        elements.forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled = !enabled; });
-        if(enabled && document.getElementById('message-input')) document.getElementById('message-input').focus();
-        document.getElementById('connStatus').textContent = enabled ? '🟢 متصل' : '⏳ جاري الاتصال...';
-        document.getElementById('connStatus').className = 'connection-status' + (enabled ? ' online' : '');
-    }
-
-    function generateRoomCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for(let i=0; i<6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-        return code;
-    }
-
-    function saveRoom(room) {
-        localStorage.setItem('lastRoom', room);
-        document.getElementById('room-code').value = room;
-    }
-
-    let peerInitialized = false;
-
-    function initPeer(hostIndex = 0) {
-        if (hostIndex >= PEER_HOSTS.length) {
-            appendSystemMessage('❌ فشل الاتصال بجميع خوادم الإشارات. تحقق من اتصالك بالإنترنت.', true);
-            enableUI(false);
-            return;
-        }
-        const config = PEER_HOSTS[hostIndex];
-        appendSystemMessage(`🔄 محاولة الاتصال بالخادم ${config.host}...`, true);
-        peer = new Peer(myUserId, config);
-        peer.on('open', id => {
-            appendSystemMessage(`✅ متصل كـ ${myUserId} عبر ${config.host}`, true);
-            peerInitialized = true;
-            enableUI(true);
-            // بعد الاتصال، نتحقق من الرابط أو التخزين
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomFromUrl = urlParams.get('room');
-            const peerFromUrl = urlParams.get('peer');
-            const pubKeyFromUrl = urlParams.get('pubkey');
-            if(peerFromUrl && pubKeyFromUrl) {
-                connectToPeer(peerFromUrl, pubKeyFromUrl);
-                if(roomFromUrl) {
-                    document.getElementById('room-code').value = roomFromUrl;
-                    saveRoom(roomFromUrl);
-                }
-            } else if(roomFromUrl) {
-                document.getElementById('room-code').value = roomFromUrl;
-                saveRoom(roomFromUrl);
-                connectToRoom(roomFromUrl);
-            } else if(roomCode) {
-                document.getElementById('room-code').value = roomCode;
-                connectToRoom(roomCode);
-            } else {
-                const newRoom = generateRoomCode();
-                document.getElementById('room-code').value = newRoom;
-                saveRoom(newRoom);
-                appendSystemMessage(`🔑 رمز الغرفة: ${newRoom} (انضم إليه الطرف الآخر)`, true);
-                connectToRoom(newRoom);
-            }
-            processPendingQueue();
-        });
-        peer.on('connection', conn => { setupConnection(conn); });
-        peer.on('error', err => {
-            console.warn(`⚠️ خطأ في الخادم ${config.host}:`, err);
-            if (!peerInitialized) {
-                // جرب الخادم التالي
-                initPeer(hostIndex + 1);
-            }
-        });
-        peer.on('disconnected', () => {
-            appendSystemMessage('⚠️ انقطع الاتصال بالخادم، محاولة إعادة الاتصال...', true);
-            peer.reconnect();
-        });
-    }
-
-    document.getElementById('connect-btn').onclick = async () => {
-        const name = document.getElementById('my-name').value.trim() || "مستخدم";
-        myUserId = name + "_" + Math.random().toString(36).slice(2,6);
-        myKeyPair = await generateKeyPair();
-        myPublicKeyPem = await exportPublicKey();
-        // بدء محاولة الاتصال مع إعادة المحاولة التلقائية
-        initPeer(0);
-    };
-
-    function connectToRoom(room) {
-        const link = window.location.href.split('?')[0] + `?peer=${encodeURIComponent(myUserId)}&pubkey=${encodeURIComponent(myPublicKeyPem)}&room=${room}`;
-        navigator.clipboard.writeText(link).then(() => {
-            appendSystemMessage(`🔗 رابط الغرفة: ${link} (تم نسخه)`, true);
-        }).catch(() => {
-            appendSystemMessage(`🔗 انسخ هذا الرابط: ${link}`, true);
-        });
-        if(peer) {
-            for(let [id, info] of users.entries()) {
-                if(info.conn && info.conn.open) {
-                    info.conn.send({ type: 'room-announce', room: room, userId: myUserId, publicKey: myPublicKeyPem });
-                }
-            }
-        }
-    }
-
-    function connectToPeer(peerId, pubKey) {
-        const conn = peer.connect(peerId);
-        conn.on('open', () => {
-            conn.send({ type: 'publicKey', publicKey: myPublicKeyPem, name: myUserId });
-            users.set(peerId, { name: peerId, publicKey: null, conn, blocked: blockedUsers.includes(peerId) });
-            importPublicKey(pubKey).then(pk => users.set(peerId, { ...users.get(peerId), publicKey: pk }));
-            setupConnection(conn);
-        });
-    }
-
-    function setupConnection(conn) {
-        conn.on('data', async (data) => {
-            if (blockedUsers.includes(conn.peer)) return;
-            if (data.type === 'publicKey') {
-                users.set(conn.peer, { name: data.name || conn.peer, publicKey: await importPublicKey(data.publicKey), conn, blocked: blockedUsers.includes(conn.peer) });
-                updateUsersList(); appendSystemMessage(`🔑 استلام مفتاح عام من ${data.name || conn.peer}`);
-            } else if (data.type === 'message') {
-                const text = await decryptMessage(data.encrypted);
-                const isImage = data.encrypted.isImage; const replyTo = data.encrypted.replyTo;
-                appendMessage(`من ${users.get(conn.peer)?.name || conn.peer}: ${text}`, false, conn.peer, isImage, data.msgId, replyTo);
-                saveMessageToChat(conn.peer, text, false, isImage?'image':'text', data.msgId);
-                stats.messagesReceived++; playNotification(); sendDeliveryReceipt(conn.peer, data.msgId);
-            } else if (data.type === 'delivery') { showDeliveryConfirmed(data.msgId); }
-            else if (data.type === 'typing') { showTypingIndicator(data.status, conn.peer); }
-            else if (data.type === 'liveStreamOffer') { joinLiveStream(data.streamId); }
-            else if (data.type === 'webrtc-offer') handleWebRTCOffer(conn.peer, data.offer);
-            else if (data.type === 'webrtc-answer') if(pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-            else if (data.type === 'ice-candidate') if(pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-            else if (data.type === 'reaction') { appendSystemMessage(`👍 تفاعل ${data.reaction} من ${users.get(conn.peer)?.name}`, false); }
-            else if (data.type === 'room-announce') {
-                if(data.room === roomCode && data.userId !== myUserId) {
-                    appendSystemMessage(`👤 انضم ${data.userId} إلى الغرفة`, true);
-                    users.set(data.userId, { name: data.userId, publicKey: await importPublicKey(data.publicKey), conn, blocked: false });
-                    updateUsersList();
-                }
-            }
-        });
-        conn.on('close', () => { users.delete(conn.peer); updateUsersList(); appendSystemMessage(`❌ انقطع ${conn.peer}`); });
-        conn.send({ type: 'publicKey', publicKey: myPublicKeyPem, name: myUserId });
-        if(roomCode) {
-            conn.send({ type: 'room-announce', room: roomCode, userId: myUserId, publicKey: myPublicKeyPem });
-        }
-    }
-
-    document.getElementById('room-create').onclick = () => {
-        const newRoom = generateRoomCode();
-        document.getElementById('room-code').value = newRoom;
-        saveRoom(newRoom);
-        appendSystemMessage(`🔑 تم إنشاء غرفة: ${newRoom} (انضم إليه الطرف الآخر)`, true);
-        connectToRoom(newRoom);
-    };
-
-    document.getElementById('room-join').onclick = () => {
-        const room = document.getElementById('room-code').value.trim().toUpperCase();
-        if(room.length < 4) return alert("أدخل رمز غرفة صالح (4-8 أحرف)");
-        saveRoom(room);
-        connectToRoom(room);
-    };
-
-    function updateUsersList() {
-        const list=document.getElementById('online-users-list');
-        list.innerHTML='';
-        for(let [id,info] of users.entries()){
-            if(blockedUsers.includes(id)) continue;
-            const li=document.createElement('li');
-            li.textContent=info.name||id.slice(0,8);
-            li.onclick=()=>{
-                document.querySelectorAll('#online-users-list li').forEach(l=>l.classList.remove('active'));
-                li.classList.add('active');
-                currentRecipientId=id;
-                currentConn=info.conn;
-                loadChatHistory(id);
-                appendSystemMessage(`✅ تم اختيار المستلم: ${info.name||id.slice(0,8)}`);
-            };
-            list.appendChild(li);
-        }
-        if(list.children.length===0) list.innerHTML='<li>لا يوجد متصلون. أنشئ غرفة أو انضم إلى واحدة.</li>';
-    }
-
-    // ==================================================================
-    // 7. الأزرار والميزات الأخرى
-    // ==================================================================
     document.getElementById('send-btn').onclick = async () => {
-        const inp=document.getElementById('message-input');
-        if(inp.value.trim()) await sendMessage(inp.value);
-        inp.value='';
+        const input = document.getElementById('message-input');
+        if (!input.value.trim()) return;
+        await sendMessage(input.value);
+        input.value = '';
     };
-    document.getElementById('attach-file-btn').onclick = () => {
-        const inp=document.createElement('input');
-        inp.type='file';
-        inp.accept='image/*';
-        inp.onchange=async e=>{
-            const file=e.target.files[0];
-            if(!file) return;
-            const reader=new FileReader();
-            reader.onload=async ev=>{
+
+    // ==================================================================
+    //  7. ميزات إضافية (إيموجي، صور، إلخ)
+    // ==================================================================
+    // بناء لوحة الإيموجي
+    const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','👍','👎','👏','🙌','🤲','🤝','🙏','✌️','🤟','🤘','👌','🤌','🤞','🤙','👋','🖐️','✋','🖖','👀','👁️','🧠','🫀','🫁','💋','👄','🦷','👅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🪐','🌍','🌎','🌏','🌐','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','⚡','🔥','💧','🌊','🌟','🌈','☂️','☔','⛱️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌬️','🧘','🛀','🛌','🧖','🧗','🧘‍♂️','🧘‍♀️','🤸','🤼','🤽','🤾','🤹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🦸','🦹','🧠','🦾','🦿','🦴','🦷','👀','👁️','👅','👄','🫀','🫁','🧬','🦠','🧫','🧪','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🧺','🧻','🧼','🧽','🧴','🪒','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🧰','🔧','🔩','⚙️','🗜️','⚖️','🔗','⛓️','🧲','⚔️','🗡️','🛡️','🏹','🪃','🪄','🪢','🪣','🪤','🪥','🪦','🪧','🪨','🪶','🪷','🪹','🪺','🪻','🪼','🪽','🪾','🪿','🫀','🫁','🫂','🫃','🫄','🫅','🫆','🫇','🫈','🫉','🫊','🫋','🫌','🫍','🫎','🫏','🫐','🫑','🫒','🫓','🫔','🫕','🫖','🫗','🫘','🫙','🫚','🫛','🫜','🫝','🫞','🫟','🫠'];
+
+    const picker = document.getElementById('emoji-picker');
+    emojis.forEach(e => {
+        const btn = document.createElement('button');
+        btn.textContent = e;
+        btn.onclick = () => {
+            const input = document.getElementById('message-input');
+            input.value += e;
+            input.focus();
+            picker.classList.remove('open');
+        };
+        picker.appendChild(btn);
+    });
+
+    document.getElementById('emoji-toggle').onclick = (e) => {
+        e.stopPropagation();
+        picker.classList.toggle('open');
+    };
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.emoji-picker') && !e.target.closest('.emoji-btn')) {
+            picker.classList.remove('open');
+        }
+    });
+
+    // زر إرفاق صورة
+    document.getElementById('attach-btn').onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
                 await sendMessage('صورة', true, ev.target.result);
             };
             reader.readAsDataURL(file);
         };
-        inp.click();
-    };
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition=null;
-    if(SpeechRecognition) recognition=new SpeechRecognition();
-    recognition.continuous=false; recognition.lang='ar';
-    document.getElementById('voice-input-btn').onclick = () => {
-        if(!recognition) return alert("المتصفح لا يدعم الإملاء الصوتي");
-        recognition.start();
-        recognition.onresult=e=>{
-            document.getElementById('message-input').value=e.results[0][0].transcript;
-        };
-    };
-    document.getElementById('reminder-btn').onclick = () => {
-        const msg=prompt("نص التذكير:");
-        const sec=parseInt(prompt("بعد كم ثانية؟"));
-        if(msg && sec) setReminder(msg, sec);
-    };
-    document.getElementById('stats-btn').onclick = showStats;
-    document.getElementById('theme-select').onchange = e => applyTheme(e.target.value);
-    document.getElementById('search-btn').onclick = () => searchMessages(document.getElementById('search-input').value);
-    document.getElementById('live-stream-btn').onclick = startLiveStream;
-    document.getElementById('fingerprint-btn').onclick = async () => {
-        const fp=await getFingerprint();
-        alert(`بصمة مفتاحك العام (SHA-256): ${fp}\nاطلب من الطرف الآخر مشاركة بصمته وقارنها يدوياً لمنع هجمات MITM.`);
+        input.click();
     };
 
-    // ==================================================================
-    // 8. مكالمات الفيديو ومشاركة الشاشة
-    // ==================================================================
-    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-    async function startCall(stream) {
-        if(!currentConn) { appendSystemMessage("❌ لا يوجد اتصال مع المستلم"); return; }
-        if(!currentRecipientId) { appendSystemMessage("❌ اختر مستلم أولاً من القائمة"); return; }
-        pc=new RTCPeerConnection(config);
-        stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-        pc.ontrack=e=>showRemoteVideo(e.streams[0]);
-        pc.onicecandidate=e=>{ if(e.candidate) currentConn.send({type:'ice-candidate', candidate:e.candidate}); };
-        const offer=await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        currentConn.send({type:'webrtc-offer', offer});
+    // مؤقت الكتابة
+    let typingTimeout = null;
+    document.getElementById('message-input').addEventListener('input', () => {
+        if (!currentConn) return;
+        if (typingTimeout) clearTimeout(typingTimeout);
+        currentConn.send({ type: 'typing', isTyping: true });
+        typingTimeout = setTimeout(() => {
+            currentConn.send({ type: 'typing', isTyping: false });
+        }, 1000);
+    });
+
+    function showTyping(isTyping, peerId) {
+        const el = document.getElementById('typing-indicator');
+        if (isTyping) {
+            el.textContent = `${users.get(peerId)?.name || peerId} يكتب...`;
+            el.classList.add('show');
+        } else {
+            el.classList.remove('show');
+        }
     }
-    async function handleWebRTCOffer(fromId, offer) {
-        if(!confirm(`مكالمة فيديو مشفرة من ${users.get(fromId)?.name || fromId.slice(0,6)}. هل تقبل؟`)) return;
+
+    // ==================================================================
+    //  8. مكالمات فيديو (WebRTC)
+    // ==================================================================
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    async function startCall(mediaType = 'video') {
+        if (!currentConn) return alert('اختر مستلم أولاً');
         try {
-            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-            pc=new RTCPeerConnection(config);
-            localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer=await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            users.get(fromId)?.conn?.send({type:'webrtc-answer', answer});
-            pc.ontrack=e=>showRemoteVideo(e.streams[0]);
-            pc.onicecandidate=e=>{ if(e.candidate) users.get(fromId)?.conn?.send({type:'ice-candidate', candidate:e.candidate}); };
-        } catch(e) { alert("تعذر الوصول إلى الكاميرا/الميكروفون"); }
+            const constraints = mediaType === 'video' ? { video: true, audio: true } : { audio: true };
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            // عرض الكاميرا المحلية
+            showLocalCamera(localStream);
+            pc = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            pc.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                showRemoteVideo(remoteStream);
+            };
+            pc.onicecandidate = (e) => {
+                if (e.candidate) currentConn.send({ type: 'ice-candidate', candidate: e.candidate });
+            };
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            currentConn.send({ type: 'webrtc-offer', offer });
+            isCallActive = true;
+        } catch (e) {
+            alert('تعذر الوصول إلى الكاميرا/الميكروفون');
+        }
     }
-    function showRemoteVideo(stream) {
-        let div=document.querySelector('.remote-video');
-        if(!div){
-            div=document.createElement('div'); div.className='remote-video';
-            div.innerHTML='<video autoplay></video><button>إغلاق المكالمة</button>';
-            document.body.appendChild(div);
-            div.querySelector('button').onclick=()=>{
-                div.remove();
-                if(pc) pc.close();
-                if(localStream) localStream.getTracks().forEach(t=>t.stop());
-                pc=null;
-                appendSystemMessage("🔴 تم إنهاء المكالمة");
+
+    async function handleWebRTCOffer(fromId, offer) {
+        if (!confirm(`مكالمة من ${users.get(fromId)?.name || fromId}`)) return;
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            showLocalCamera(localStream);
+            pc = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            users.get(fromId)?.conn?.send({ type: 'webrtc-answer', answer });
+            pc.ontrack = (e) => {
+                remoteStream = e.streams[0];
+                showRemoteVideo(remoteStream);
+            };
+            pc.onicecandidate = (e) => {
+                if (e.candidate) users.get(fromId)?.conn?.send({ type: 'ice-candidate', candidate: e.candidate });
+            };
+            isCallActive = true;
+        } catch (e) {
+            alert('تعذر الوصول إلى الكاميرا');
+        }
+    }
+
+    function showLocalCamera(stream) {
+        let container = document.querySelector('.local-camera');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'local-camera';
+            container.innerHTML = `<video autoplay muted playsinline></video><div class="controls"><button id="end-call">إنهاء</button><button id="toggle-mic">🎤</button><button id="toggle-cam">📷</button></div>`;
+            document.body.appendChild(container);
+            container.querySelector('#end-call').onclick = endCall;
+            container.querySelector('#toggle-mic').onclick = () => {
+                const track = localStream?.getAudioTracks()[0];
+                if (track) track.enabled = !track.enabled;
+            };
+            container.querySelector('#toggle-cam').onclick = () => {
+                const track = localStream?.getVideoTracks()[0];
+                if (track) track.enabled = !track.enabled;
             };
         }
-        div.querySelector('video').srcObject=stream;
+        container.querySelector('video').srcObject = stream;
     }
-    document.getElementById('video-call-btn').onclick = async () => {
-        if(!currentConn) return alert("لا يوجد اتصال مع مستلم. تأكد من اختيار مستلم من القائمة.");
-        if(!currentRecipientId) return alert("اختر مستلم أولاً من قائمة المتصلين.");
-        try {
-            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-            startCall(localStream);
-        } catch(e) { alert("لا يمكن الوصول إلى الكاميرا/الميكروفون"); }
-    };
-    document.getElementById('screen-share-btn').onclick = async () => {
-        if(!currentConn) return alert("اختر مستلم أولاً");
-        if(isScreenSharing) return;
-        try {
-            const screenStream=await navigator.mediaDevices.getDisplayMedia({video:true});
-            if(localStream) localStream.getTracks().forEach(t=>t.stop());
-            localStream=screenStream;
-            if(pc){
-                const senders=pc.getSenders();
-                const vs=senders.find(s=>s.track.kind==='video');
-                if(vs) vs.replaceTrack(screenStream.getVideoTracks()[0]);
-            } else startCall(localStream);
-            isScreenSharing=true;
-            screenStream.getVideoTracks()[0].onended=()=>{ isScreenSharing=false; };
-        } catch(e) { alert("تعذر الوصول إلى الشاشة"); }
-    };
 
-    // ==================================================================
-    // 9. النسخ الاحتياطي والتصدير وبصمة الصوت ومسح التخزين
-    // ==================================================================
-    async function exportBackup() {
-        if(!myKeyPair) return;
-        const backup={ privateKey: await crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey), publicKey: myPublicKeyPem, blockedUsers, chats, theme: localStorage.getItem('userTheme')||'default' };
-        const json=JSON.stringify(backup, (k,v)=>v instanceof ArrayBuffer?ab2b64(v):v);
-        const blob=new Blob([json],{type:'application/json'});
-        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup_secure.json'; a.click();
-    }
-    document.getElementById('backup-export').onclick=exportBackup;
-    document.getElementById('export-chats').onclick=()=>{
-        const blob=new Blob([JSON.stringify(chats)],{type:'application/json'});
-        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='chats.json'; a.click();
-    };
-    async function recordVoiceFingerprint() {
-        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-        const mediaRecorder=new MediaRecorder(stream);
-        let chunks=[];
-        mediaRecorder.ondataavailable=e=>chunks.push(e.data);
-        mediaRecorder.onstop=async()=>{
-            const blob=new Blob(chunks,{type:'audio/webm'});
-            const buffer=await blob.arrayBuffer();
-            const hash=await crypto.subtle.digest('SHA-256', buffer);
-            alert(`بصمة صوتك (SHA-256): ${ab2b64(hash).slice(0,16)}`);
-            stream.getTracks().forEach(t=>t.stop());
-        };
-        mediaRecorder.start();
-        setTimeout(()=>mediaRecorder.stop(),3000);
-    }
-    document.getElementById('voice-fingerprint-btn').onclick=recordVoiceFingerprint;
-    document.getElementById('clear-storage').onclick=()=>{
-        if(confirm("حذف جميع البيانات المخزنة محلياً (المفاتيح والمحادثات)؟")){
-            localStorage.clear();
-            location.reload();
+    function showRemoteVideo(stream) {
+        let container = document.querySelector('.remote-video');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'remote-video';
+            container.innerHTML = `<video autoplay playsinline></video><div class="controls"><button id="end-remote-call">إنهاء</button></div>`;
+            document.body.appendChild(container);
+            container.querySelector('#end-remote-call').onclick = endCall;
         }
-    };
-
-    // ==================================================================
-    // 10. استعادة التذكيرات والرسالة المثبتة والثيمات
-    // ==================================================================
-    reminders.forEach(r=>{
-        const delay=r.time-Date.now();
-        if(delay>0) setTimeout(()=>{
-            alert(`🔔 تذكير: ${r.message}`);
-            reminders=reminders.filter(rem=>rem.id!==r.id);
-            localStorage.setItem('reminders',JSON.stringify(reminders));
-        }, delay);
-    });
-    const savedPin=localStorage.getItem('pinnedMessage');
-    if(savedPin){ const p=JSON.parse(savedPin); pinMessage(p.id, p.text); }
-    applyTheme(localStorage.getItem('userTheme')||'default');
-    function setTheme(theme) {
-        document.body.classList.toggle('light', theme==='light');
-        localStorage.setItem('theme',theme);
-    }
-    document.getElementById('themeToggle').onclick = () => {
-        const newTheme = document.body.classList.contains('light') ? 'dark' : 'light';
-        setTheme(newTheme);
-    };
-    setTheme(localStorage.getItem('theme')||'dark');
-    document.getElementById('message-input').addEventListener('input', startTyping);
-
-    // ==================================================================
-    // 11. تتبع اليد (MediaPipe)
-    // ==================================================================
-    const ctx = cameraCanvas.getContext('2d');
-    let fingerCursor = null;
-    if (navigator.mediaDevices) {
-        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6 });
-        hands.onResults((results) => {
-            ctx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00ffcc', lineWidth: 2 });
-                drawLandmarks(ctx, landmarks, { color: '#ff00ff', lineWidth: 1 });
-                const indexTip = landmarks[8];
-                if (indexTip) {
-                    const x = indexTip.x * window.innerWidth;
-                    const y = indexTip.y * window.innerHeight;
-                    if (!fingerCursor) {
-                        fingerCursor = document.createElement('div');
-                        fingerCursor.className = 'finger-cursor';
-                        document.body.appendChild(fingerCursor);
-                    }
-                    fingerCursor.style.left = (x - 11) + 'px';
-                    fingerCursor.style.top = (y - 11) + 'px';
-                }
-            } else {
-                if (fingerCursor) { fingerCursor.remove(); fingerCursor = null; }
-            }
-        });
-        const camera = new Camera(cameraVideo, { onFrame: async () => { if (cameraVideo.readyState >= 2) { await hands.send({ image: cameraVideo }); } } });
-        camera.start();
+        container.querySelector('video').srcObject = stream;
     }
 
-    // ==================================================================
-    // 12. أثر الفأرة والإرسال بالضغط على Enter
-    // ==================================================================
-    document.addEventListener('mousemove', e => {
-        const trail = document.createElement('div');
-        trail.className = 'trail-particle';
-        trail.style.left = (e.clientX - 6) + 'px';
-        trail.style.top = (e.clientY - 6) + 'px';
-        document.getElementById('cursor-trail').appendChild(trail);
-        setTimeout(() => trail.remove(), 500);
-    });
-
-    document.getElementById('message-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            const sendBtn = document.getElementById('send-btn');
-            if (!sendBtn.disabled) sendBtn.click();
+    function endCall() {
+        if (pc) {
+            pc.close();
+            pc = null;
         }
-    });
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+        if (remoteStream) {
+            remoteStream.getTracks().forEach(t => t.stop());
+            remoteStream = null;
+        }
+        document.querySelectorAll('.local-camera, .remote-video').forEach(el => el.remove());
+        isCallActive = false;
+    }
 
-    function playNotification(isOwn=false) {
-        if(isOwn) return;
-        try{
-            const ctx = new (AudioContext || webkitAudioContext)();
+    document.getElementById('video-call-btn').onclick = () => startCall('video');
+    document.getElementById('voice-call-btn').onclick = () => startCall('audio');
+
+    // ==================================================================
+    //  9. وظائف مساعدة
+    // ==================================================================
+    function updateContactLast(userId, text) {
+        const el = document.querySelector(`.contact-item[data-id="${userId}"] .contact-last`);
+        if (el) el.textContent = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+    }
+
+    function appendSystemMessage(msg) {
+        const area = document.getElementById('messages-area');
+        const div = document.createElement('div');
+        div.style.cssText = 'text-align:center; font-size:0.8rem; color:var(--text-muted); padding:6px 0;';
+        div.textContent = msg;
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function updateStatus(status) {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        if (status === 'online') {
+            dot.className = 'dot online';
+            text.textContent = 'متصل';
+        } else {
+            dot.className = 'dot offline';
+            text.textContent = 'غير متصل';
+        }
+    }
+
+    function playNotification() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
-            osc.frequency.value = 880;
-            gain.gain.value = 0.2;
+            osc.frequency.value = 800;
+            gain.gain.value = 0.15;
             osc.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
-        } catch(e){}
-        if(navigator.vibrate) navigator.vibrate(200);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+        } catch (e) {}
+        if (navigator.vibrate) navigator.vibrate(200);
     }
 
     // ==================================================================
-    // 13. تثبيت PWA
+    //  10. تسجيل الخروج
     // ==================================================================
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('install-btn').style.display = 'block';
-    });
-    document.getElementById('install-btn').onclick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const result = await deferredPrompt.userChoice;
-            if (result.outcome === 'accepted') {
-                console.log('تم تثبيت التطبيق');
-            }
-            deferredPrompt = null;
-            document.getElementById('install-btn').style.display = 'none';
-        }
+    document.getElementById('logout-btn').onclick = () => {
+        if (currentPeer) currentPeer.destroy();
+        document.getElementById('app').classList.remove('active');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        location.reload(); // إعادة تحميل بسيطة
     };
 
-    // ضبط رمز الغرفة الأولي من localStorage
-    document.getElementById('room-code').value = roomCode;
+    // ==================================================================
+    //  11. البحث
+    // ==================================================================
+    document.getElementById('search-contacts').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        document.querySelectorAll('.contact-item').forEach(el => {
+            const name = el.querySelector('.contact-name')?.textContent?.toLowerCase() || '';
+            el.style.display = name.includes(query) ? 'flex' : 'none';
+        });
+    });
+
+    // ==================================================================
+    //  12. عند التحميل، تحقق من حالة تسجيل الدخول
+    // ==================================================================
+    // نبدأ فوراً إذا كان هناك اسم مستخدم مخزن
+    const savedUser = localStorage.getItem('lastUser');
+    if (savedUser) {
+        document.getElementById('login-username').value = savedUser;
+    }
 </script>
 </body>
 </html>
