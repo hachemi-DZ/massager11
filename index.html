@@ -85,12 +85,13 @@
         .room-code-box input { flex: 1; min-width: 100px; }
         .install-btn { position: fixed; bottom: 80px; left: 20px; background: rgba(0,0,0,0.6); border-radius: 30px; padding: 6px 14px; z-index: 1000; font-size: 12px; }
 
-        /* لوحة الإيموجي */
+        
+        /* لوحة الإيموجي المنبثقة */
         .emoji-picker {
             display: none;
             position: absolute;
             bottom: 70px;
-            left: 20px;
+            left: 10px;
             background: rgba(20,30,50,0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -98,8 +99,8 @@
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             z-index: 2000;
-            max-width: 280px;
-            max-height: 200px;
+            max-width: 300px;
+            max-height: 220px;
             overflow-y: auto;
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -108,7 +109,7 @@
         .emoji-picker button {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 26px;
             padding: 4px;
             cursor: pointer;
             border-radius: 10px;
@@ -121,7 +122,8 @@
         .emoji-picker.show {
             display: grid;
         }
-        .emoji-btn {
+        /* زر الإيموجي بجانب حقل الكتابة */
+        .emoji-toggle-btn {
             font-size: 24px;
             background: rgba(0,0,0,0.3);
             border: 1px solid #77aaff;
@@ -129,13 +131,10 @@
             padding: 8px 16px;
             cursor: pointer;
             transition: 0.2s;
+            color: white;
         }
-        .emoji-btn:hover {
+        .emoji-toggle-btn:hover {
             background: rgba(255,255,255,0.2);
-        }
-        .input-group .emoji-btn {
-            font-size: 22px;
-            padding: 8px 14px;
         }
     </style>
 </head>
@@ -173,6 +172,8 @@
             <div id="messages-container"></div>
             <div id="reply-bar"></div>
             <div class="input-group" style="position:relative;">
+                <button class="emoji-toggle-btn" id="emoji-toggle-btn" disabled>😊</button>
+                <div class="emoji-picker" id="emoji-picker"></div>
                 <input type="text" id="message-input" placeholder="رسالة مشفرة..." disabled>
                 <button class="emoji-btn" id="emoji-toggle-btn" disabled>😊</button>
                 <button id="voice-input-btn" disabled>🎤</button>
@@ -298,41 +299,42 @@
     // ================================================================
     const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','👍','👎','👏','🙌','🤲','🤝','🙏','✌️','🤟','🤘','👌','🤌','🤞','🤙','👋','🖐️','✋','🖖','👀','👁️','🧠','🫀','🫁','💋','👄','🦷','👅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🪐','🌍','🌎','🌏','🌐','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','⚡','🔥','💧','🌊','🌟','🌈','☂️','☔','⛱️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌬️','🧘','🛀','🛌','🧖','🧗','🧘‍♂️','🧘‍♀️','🤸','🤼','🤽','🤾','🤹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🦸','🦹','🧠','🦾','🦿','🦴','🦷','👀','👁️','👅','👄','🫀','🫁','🧬','🦠','🧫','🧪','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🧺','🧻','🧼','🧽','🧴','🪒','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🧰','🔧','🔩','⚙️','🗜️','⚖️','🔗','⛓️','🧲','⚔️','🗡️','🛡️','🏹','🪃','🪄','🪢','🪣','🪤','🪥','🪦','🪧','🪨','🪶','🪷','🪹','🪺','🪻','🪼','🪽','🪾','🪿','🫀','🫁','🫂','🫃','🫄','🫅','🫆','🫇','🫈','🫉','🫊','🫋','🫌','🫍','🫎','🫏','🫐','🫑','🫒','🫓','🫔','🫕','🫖','🫗','🫘','🫙','🫚','🫛','🫜','🫝','🫞','🫟','🫠'];
 
-    function buildEmojiPicker() {
-        const picker = document.getElementById('emoji-picker');
-        picker.innerHTML = '';
-        emojis.forEach(emoji => {
-            const btn = document.createElement('button');
-            btn.textContent = emoji;
-            btn.type = 'button';
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const input = document.getElementById('message-input');
-                input.value += emoji;
-                input.focus();
-                picker.classList.remove('show');
-            };
-            picker.appendChild(btn);
+    // بناء الأزرار داخل اللوحة
+function buildEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    picker.innerHTML = '';
+    emojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.textContent = emoji;
+        btn.type = 'button';
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+            picker.classList.remove('show');
+        };
+        picker.appendChild(btn);
         });
     }
     buildEmojiPicker();
-
+    
     // زر فتح/إغلاق لوحة الإيموجي
     document.getElementById('emoji-toggle-btn').onclick = (e) => {
         e.stopPropagation();
         const picker = document.getElementById('emoji-picker');
         picker.classList.toggle('show');
     };
-
+    
     // إغلاق اللوحة عند النقر خارجها
     document.addEventListener('click', (e) => {
         const picker = document.getElementById('emoji-picker');
         const btn = document.getElementById('emoji-toggle-btn');
-        if (!picker.contains(e.target) && e.target !== btn) {
+        if (picker && btn && !picker.contains(e.target) && e.target !== btn) {
             picker.classList.remove('show');
         }
     });
-
+    
     // ================================================================
     // 4. دوال الكتابة والتأكيد والبث والتذكيرات والإحصائيات (كما هي)
     // ================================================================
