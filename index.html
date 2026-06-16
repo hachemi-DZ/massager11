@@ -671,60 +671,167 @@ emojiPicker.addEventListener('click', function(e) {
     // ================================================================
     // 9. مكالمات الفيديو ومشاركة الشاشة
     // ================================================================
-    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-    async function startCall(stream) {
-        if(!currentConn) { appendSystemMessage("❌ لا يوجد اتصال مع المستلم"); return; }
-        if(!currentRecipientId) { appendSystemMessage("❌ اختر مستلم أولاً من القائمة"); return; }
-        pc=new RTCPeerConnection(config);
-        stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-        pc.ontrack=e=>showRemoteVideo(e.streams[0]);
-        pc.onicecandidate=e=>{ if(e.candidate) currentConn.send({type:'ice-candidate', candidate:e.candidate}); };
-        const offer=await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        currentConn.send({type:'webrtc-offer', offer});
-    }
-    async function handleWebRTCOffer(fromId, offer) {
-        if(!confirm(`مكالمة فيديو مشفرة من ${users.get(fromId)?.name || fromId.slice(0,6)}. هل تقبل؟`)) return;
+    // ================================================================
+// الكاميرا المحسّنة (بديل لـ hand-cam القديم)
+// ================================================================
+    let cameraStream = null;
+    let cameraEnabled = false;
+    let useFrontCamera = false;
+    
+    const cameraContainer = document.getElementById('cameraContainer');
+    const cameraVideo = document.getElementById('camera-video');
+    const cameraCanvas = document.getElementById('camera-canvas');
+    const cameraOverlay = document.getElementById('cameraOverlay');
+    const cameraToggleBtn = document.getElementById('camera-toggle-btn');
+    const cameraSwitchBtn = document.getElementById('camera-switch-btn');
+    const cameraZoomIn = document.getElementById('camera-zoom-in');
+    const cameraZoomOut = document.getElementById('camera-zoom-out');
+    const cameraCloseBtn = document.getElementById('camera-close-btn');
+    const cameraRetryBtn = document.getElementById('camera-retry-btn');
+    
+    // ===== تشغيل الكاميرا =====
+    async function startCamera() {
         try {
-            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-            pc=new RTCPeerConnection(config);
-            localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer=await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            users.get(fromId)?.conn?.send({type:'webrtc-answer', answer});
-            pc.ontrack=e=>showRemoteVideo(e.streams[0]);
-            pc.onicecandidate=e=>{ if(e.candidate) users.get(fromId)?.conn?.send({type:'ice-candidate', candidate:e.candidate}); };
-        } catch(e) { alert("تعذر الوصول إلى الكاميرا/الميكروفون"); }
-    }
-    function showRemoteVideo(stream) {
-        let div=document.querySelector('.remote-video');
-        if(!div){
-            div=document.createElement('div'); div.className='remote-video';
-            div.innerHTML='<video autoplay></video><button>إغلاق المكالمة</button>';
-            document.body.appendChild(div);
-            div.querySelector('button').onclick=()=>{
-                div.remove();
-                if(pc) pc.close();
-                if(localStream) localStream.getTracks().forEach(t=>t.stop());
-                pc=null;
-                appendSystemMessage("🔴 تم إنهاء المكالمة");
+            const constraints = {
+                video: {
+                    facingMode: useFrontCamera ? 'user' : 'environment',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
+                audio: false
             };
+            cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+            cameraVideo.srcObject = cameraStream;
+            cameraVideo.play();
+            cameraEnabled = true;
+            cameraToggleBtn.textContent = '⏸️';
+            cameraOverlay.classList.remove('show');
+            console.log('📷 الكاميرا تعمل');
+            // بدء تتبع اليد إذا كنت تستخدم MediaPipe
+            if (typeof hands !== 'undefined') {
+                // hands هو كائن MediaPipe، يجب إعادة تشغيله إذا لزم الأمر
+            }
+            return true;
+        } catch (err) {
+            console.error('❌ فشل تشغيل الكاميرا:', err);
+            cameraOverlay.classList.add('show');
+            cameraOverlay.querySelector('span').textContent = '❌ تعذر الوصول إلى الكاميرا';
+            return false;
         }
-        div.querySelector('video').srcObject=stream;
     }
-    document.getElementById('video-call-btn').onclick = async () => {
-        if(!currentConn) return alert("لا يوجد اتصال مع مستلم. تأكد من اختيار مستلم من القائمة.");
-        if(!currentRecipientId) return alert("اختر مستلم أولاً من قائمة المتصلين.");
-        try {
-            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-            startCall(localStream);
-        } catch(e) { alert("لا يمكن الوصول إلى الكاميرا/الميكروفون"); }
+    
+    // ===== إيقاف الكاميرا =====
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        cameraVideo.srcObject = null;
+        cameraEnabled = false;
+        cameraToggleBtn.textContent = '▶️';
+        console.log('📷 الكاميرا متوقفة');
+    }
+    
+    // ===== تبديل الكاميرا =====
+    async function switchCamera() {
+        useFrontCamera = !useFrontCamera;
+        if (cameraEnabled) {
+            stopCamera();
+            await startCamera();
+        }
+    }
+    
+    // ===== تكبير/تصغير نافذة الكاميرا =====
+    let camWidth = 320, camHeight = 240;
+    cameraZoomIn.onclick = () => {
+        camWidth += 30;
+        camHeight += 22;
+        cameraContainer.style.width = camWidth + 'px';
+        cameraContainer.style.height = camHeight + 'px';
     };
-    document.getElementById('screen-share-btn').onclick = async () => {
-        if(!currentConn) return alert("اختر مستلم أولاً");
-        if(isScreenSharing) return;
-        try {
+    cameraZoomOut.onclick = () => {
+        camWidth = Math.max(200, camWidth - 30);
+        camHeight = Math.max(150, camHeight - 22);
+        cameraContainer.style.width = camWidth + 'px';
+        cameraContainer.style.height = camHeight + 'px';
+    };
+    
+    // ===== إغلاق الكاميرا =====
+    cameraCloseBtn.onclick = () => {
+        cameraContainer.style.display = 'none';
+        stopCamera();
+    };
+    
+    // ===== زر تشغيل/إيقاف =====
+    cameraToggleBtn.onclick = () => {
+        if (cameraEnabled) {
+            stopCamera();
+        } else {
+            startCamera();
+        }
+    };
+    
+    // ===== زر تبديل الكاميرا =====
+    cameraSwitchBtn.onclick = switchCamera;
+    
+    // ===== زر إعادة المحاولة =====
+    cameraRetryBtn.onclick = startCamera;
+    
+    // ===== جعل نافذة الكاميرا قابلة للسحب =====
+    let isDragging = false;
+    let dragOffsetX = 0, dragOffsetY = 0;
+    
+    cameraContainer.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.camera-controls') || e.target.closest('.camera-resize-handle')) return;
+        isDragging = true;
+        const rect = cameraContainer.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        cameraContainer.style.cursor = 'grabbing';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let left = e.clientX - dragOffsetX;
+        let top = e.clientY - dragOffsetY;
+        left = Math.max(0, Math.min(window.innerWidth - cameraContainer.offsetWidth, left));
+        top = Math.max(0, Math.min(window.innerHeight - cameraContainer.offsetHeight, top));
+        cameraContainer.style.left = left + 'px';
+        cameraContainer.style.top = top + 'px';
+        cameraContainer.style.right = 'auto';
+        cameraContainer.style.bottom = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            cameraContainer.style.cursor = 'default';
+        }
+    });
+    
+    // ===== بدء الكاميرا تلقائياً عند تحميل الصفحة =====
+    setTimeout(() => {
+        startCamera();
+    }, 500);
+    
+    // ===== إذا كنت تستخدم MediaPipe، قم بتحديث معالج النتائج =====
+    if (typeof hands !== 'undefined') {
+        const originalOnResults = hands.onResults;
+        hands.onResults = (results) => {
+            // رسم اليد على الكانفاس
+            const canvas = cameraCanvas;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00ffcc', lineWidth: 2 });
+                // رسم نقاط الإصبع
+                drawLandmarks(ctx, landmarks, { color: '#ff00ff', lineWidth: 1 });
+            }
+            // استدعاء المعالج الأصلي إذا كان موجوداً
+            if (originalOnResults) originalOnResults(results);
+        };
+    }
             const screenStream=await navigator.mediaDevices.getDisplayMedia({video:true});
             if(localStream) localStream.getTracks().forEach(t=>t.stop());
             localStream=screenStream;
