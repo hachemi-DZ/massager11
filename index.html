@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>مرسال آمن - PWA</title>
+    <!-- PWA meta tags -->
+    <link rel="manifest" href="data:application/json;charset=utf-8,{
+        &quot;name&quot;:&quot;Secure Messenger&quot;,
+        &quot;short_name&quot;:&quot;Messenger&quot;,
+        &quot;start_url&quot;:&quot;.&quot;,
+        &quot;display&quot;:&quot;standalone&quot;,
+        &quot;background_color&quot;:&quot;#0b1120&quot;,
+        &quot;theme_color&quot;:&quot;#0b1120&quot;,
+        &quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230b1120'/%3E%3Ctext x='50' y='50' text-anchor='middle' dy='.35em' font-size='60' fill='%2377ddff'%3E🔒%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        :root {
+            --bg1: #0a0f1e; --bg2: #010101; --glass: rgba(15,25,45,0.4);
+            --border: rgba(255,255,255,0.2); --text: #fff; --own-msg: #2c6e9e;
+            --other-msg: rgba(255,255,240,0.12); --shadow: 0 25px 45px rgba(0,0,0,0.4);
+        }
+        body.light {
+            --bg1: #d0d8e8; --bg2: #ffffff; --glass: rgba(200,210,240,0.7);
+            --border: rgba(0,0,0,0.2); --text: #111; --own-msg: #4a8fbf; --other-msg: rgba(0,0,0,0.08);
+        }
+        body {
+            background: radial-gradient(circle at 30% 10%, var(--bg1), var(--bg2));
+            min-height: 100vh; display: flex; justify-content: center; align-items: center;
+            font-family: 'Segoe UI', system-ui, sans-serif; cursor: none; overflow: hidden;
+            color: var(--text); transition: all 0.3s; padding: 0;
+        }
+        .glass { width: 95vw; height: 90vh; background: var(--glass); backdrop-filter: blur(20px);
+            border-radius: 48px; border: 1px solid var(--border); box-shadow: var(--shadow);
+            display: flex; flex-direction: column; transition: 0.2s; max-width: 1400px; }
+        .glass:hover { transform: scale(1.01); }
+        .header { padding: 20px 30px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .header h1 { background: linear-gradient(135deg, #ffb3ff, #77ddff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .user-info { display: flex; gap: 12px; align-items: center; }
+        input, button, select { background: rgba(0,0,0,0.6); border: 1px solid #77aaff; border-radius: 60px;
+            padding: 8px 20px; color: white; font-weight: bold; outline: none; }
+        body.light input, body.light button, body.light select { background: rgba(0,0,0,0.15); color: #000; }
+        button { background: linear-gradient(135deg, #5f4bd0, #2cb67d); cursor: pointer; transition: 0.2s; }
+        button:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
+        .main-area { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 280px; background: rgba(0,0,0,0.45); border-right: 1px solid var(--border);
+            padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .sidebar h3 { margin-bottom: 5px; color: #ccddff; }
+        #online-users-list { list-style: none; }
+        #online-users-list li { padding: 8px 12px; margin: 8px 0; background: rgba(255,255,255,0.08);
+            border-radius: 40px; cursor: pointer; }
+        #online-users-list li.active { background: #2c7da0; box-shadow: 0 0 8px #2c7da0; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; }
+        #messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { background: var(--other-msg); border-radius: 28px; padding: 8px 20px; width: fit-content;
+            max-width: 70%; backdrop-filter: blur(4px); position: relative; }
+        .message.own { align-self: flex-end; background: var(--own-msg); }
+        .message .sender { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+        .message .content { word-break: break-word; }
+        .message .reactions { display: flex; gap: 6px; margin-top: 6px; font-size: 14px; }
+        .message .reactions span { cursor: pointer; padding: 0 6px; border-radius: 20px; background: rgba(255,255,255,0.2); }
+        .reply-indicator { font-size: 11px; opacity: 0.8; margin-bottom: 4px; border-left: 2px solid cyan; padding-left: 8px; }
+        .delivery-status { font-size: 10px; margin-left: 8px; }
+        .input-group { display: flex; gap: 8px; padding: 20px; flex-wrap: wrap; }
+        #message-input { flex: 1; }
+        #reply-bar, #pinned-message { font-size: 12px; padding: 0 20px 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        #pinned-message { background: rgba(0,0,0,0.6); border-radius: 20px; margin: 0 20px 8px; padding: 8px; display: none; }
+        #typing-indicator { font-size: 12px; color: #aaa; padding: 0 20px; }
+        .trail-particle { position: fixed; width: 12px; height: 12px; background: radial-gradient(circle, #ff66cc, #44aaff);
+            border-radius: 50%; filter: blur(3px); animation: fadeOut 0.5s forwards; pointer-events: none; z-index: 9999; }
+        @keyframes fadeOut { to { opacity: 0; transform: scale(2.5); filter: blur(8px); } }
+        .hand-cam { position: absolute; bottom: 20px; right: 20px; width: 220px; height: 165px; border-radius: 20px;
+            overflow: hidden; border: 2px solid cyan; z-index: 100; background: black; transition: width 0.1s, height 0.1s; box-shadow: 0 0 15px cyan; }
+        .hand-cam video, .hand-cam canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+        .hand-cam-controls { position: absolute; top: 5px; right: 5px; display: flex; gap: 8px;
+            background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 30px; z-index: 101; }
+        .remote-video, .live-stream { position: fixed; top: 20px; right: 20px; width: 280px; border-radius: 20px;
+            border: 2px solid white; background: black; z-index: 1000; }
+        .live-stream { bottom: 20px; top: auto; }
+        .finger-cursor { position: fixed; width: 22px; height: 22px; border-radius: 50%; background: red;
+            border: 2px solid white; z-index: 99999; pointer-events: none; box-shadow: 0 0 10px red; transition: 0.02s linear; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); border-radius: 30px; padding: 6px 12px; cursor: pointer; z-index: 1000; }
+        .sidebar button, .sidebar select { width: 100%; margin-top: 5px; }
+        .room-code-box { background: rgba(0,0,0,0.4); border-radius: 30px; padding: 12px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .room-code-box input { flex: 1; min-width: 100px; }
+        .install-btn { position: fixed; bottom: 80px; left: 20px; background: rgba(0,0,0,0.6); border-radius: 30px; padding: 6px 14px; z-index: 1000; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div class="glass">
+    <div class="header">
+        <h1>🔒 مرسال سهل - PWA</h1>
+        <div class="user-info">
+            <input type="text" id="my-name" placeholder="اسمك" value="user" autocomplete="off" style="max-width:120px;">
+            <button id="connect-btn">اتصال</button>
+        </div>
+    </div>
+    <div class="main-area">
+        <div class="sidebar">
+            <div class="room-code-box">
+                <span>🔑</span>
+                <input type="text" id="room-code" placeholder="رمز الغرفة" value="" maxlength="8" style="flex:1; min-width:80px; background:rgba(0,0,0,0.4);">
+                <button id="room-create">إنشاء</button>
+                <button id="room-join">انضمام</button>
+            </div>
+            <h3>📡 المتصلون</h3>
+            <ul id="online-users-list"></ul>
+            <button id="fingerprint-btn">🔐 بصمة الأمان</button>
+            <button id="stats-btn">📊 إحصائيات</button>
+            <select id="theme-select"><option value="default">🌙 افتراضي</option><option value="darkGreen">🌲 أخضر داكن</option><option value="midnight">🌌 منتصف الليل</option></select>
+            <div style="display:flex; gap:6px;"><input type="text" id="search-input" placeholder="بحث..."><button id="search-btn">🔍</button></div>
+            <button id="backup-export">💾 نسخ احتياطي</button>
+            <button id="export-chats">📄 تصدير المحادثات</button>
+            <button id="voice-fingerprint-btn">🎤 بصمة الصوت</button>
+            <button id="clear-storage">🗑️ مسح البيانات</button>
+        </div>
+        <div class="chat-area">
+            <div id="pinned-message"></div>
+            <div id="typing-indicator"></div>
+            <div id="messages-container"></div>
+            <div id="reply-bar"></div>
+            <div class="input-group">
+                <input type="text" id="message-input" placeholder="رسالة مشفرة..." disabled>
+                <button id="voice-input-btn" disabled>🎤 إملاء</button>
+                <button id="attach-file-btn" disabled>🖼️ صورة</button>
+                <button id="reminder-btn" disabled>⏰ تذكير</button>
+                <button id="send-btn" disabled>✉️ إرسال</button>
+                <button id="video-call-btn" disabled>📹 فيديو</button>
+                <button id="screen-share-btn" disabled>🖥️ شاشة</button>
+                <button id="live-stream-btn" disabled>📡 بث مباشر</button>
+            </div>
+            <div id="file-preview-area"></div>
+        </div>
+    </div>
+</div>
+<div id="cursor-trail"></div>
+<div class="hand-cam" id="handCam">
+    <div class="hand-cam-controls"><button id="zoomOut">➖</button><button id="zoomIn">➕</button></div>
+    <video id="hand-video" autoplay muted playsinline></video>
+    <canvas id="hand-canvas"></canvas>
+</div>
+<div class="theme-toggle" id="themeToggle">🌙 الوضع الليلي</div>
+<div class="install-btn" id="install-btn" style="display:none;">📲 تثبيت التطبيق</div>
+
+<script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script>
+    // ==================================================================
+    // 1. التشفير (RSA-2048 + AES-256-GCM)
+    // ==================================================================
+    let myKeyPair, myUserId, peer, currentConn, currentRecipientId;
+    let users = new Map();
+    let myPublicKeyPem;
+    let blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+    let pendingMessages = JSON.parse(localStorage.getItem('pendingMessages') || '[]');
+    let chats = JSON.parse(localStorage.getItem('chats') || '{}');
+    let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+    let pinnedMessage = null, replyToMessage = null;
+    let stats = { messagesSent:0, messagesReceived:0, sessionStart:Date.now() };
+    let typingTimeout, isTyping=false;
+    let pc=null, localStream=null, isScreenSharing=false, liveStreamPeer=null;
+    let roomCode = localStorage.getItem('lastRoom') || '';
+
+    async function generateKeyPair() {
+        return await crypto.subtle.generateKey({
+            name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: "SHA-256"
+        }, true, ["encrypt","decrypt"]);
+    }
+    function ab2b64(ab) { return btoa(String.fromCharCode(...new Uint8Array(ab))); }
+    function b642ab(b64) { return new Uint8Array(atob(b64).split('').map(c=>c.charCodeAt(0))).buffer; }
+    async function encryptForPeer(message, recipientPublicKey, isImage=false, replyToId=null) {
+        const sessionKey = crypto.getRandomValues(new Uint8Array(32));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const aesKey = await crypto.subtle.importKey("raw", sessionKey, { name: "AES-GCM" }, false, ["encrypt"]);
+        const encryptedMsg = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, new TextEncoder().encode(message));
+        const encryptedKey = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, recipientPublicKey, sessionKey);
+        return { iv: ab2b64(iv), encryptedData: ab2b64(encryptedMsg), encryptedKey: ab2b64(encryptedKey), isImage, replyTo: replyToId };
+    }
+    async function decryptMessage(pkg) {
+        const iv = b642ab(pkg.iv);
+        const encryptedData = b642ab(pkg.encryptedData);
+        const encryptedKey = b642ab(pkg.encryptedKey);
+        const sessionKey = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, myKeyPair.privateKey, encryptedKey);
+        const aesKey = await crypto.subtle.importKey("raw", sessionKey, { name: "AES-GCM" }, false, ["decrypt"]);
+        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, encryptedData);
+        return new TextDecoder().decode(decrypted);
+    }
+    async function exportPublicKey() { return ab2b64(await crypto.subtle.exportKey("spki", myKeyPair.publicKey)); }
+    async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", b642ab(pem), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); }
+    async function getFingerprint() {
+        const exported = await crypto.subtle.exportKey("spki", myKeyPair.publicKey);
+        const hash = await crypto.subtle.digest("SHA-256", exported);
+        return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
+    }
+
+    function saveMessageToChat(recipientId, msg, isOwn, type='text', msgId=null) {
+        if(!chats[recipientId]) chats[recipientId]=[];
+        chats[recipientId].push({ from: isOwn?myUserId:recipientId, text: msg, timestamp:Date.now(), type, msgId:msgId||Date.now() });
+        localStorage.setItem('chats', JSON.stringify(chats));
+    }
+    function playNotification(isOwn=false) {
+        if(isOwn) return;
+        try{ const ctx=new (AudioContext||webkitAudioContext)(); const o=ctx.createOscillator(); const g=ctx.createGain();
+        o.connect(g); g.connect(ctx.destination); o.frequency.value=880; g.gain.value=0.2; o.start(); g.gain.exponentialRampToValueAtTime(0.00001,ctx.currentTime+0.5); }catch(e){}
+        if(navigator.vibrate) navigator.vibrate(200);
+    }
+
+    // مؤقت الكتابة
+    function sendTyping(status) { if(currentConn?.open) currentConn.send({ type:'typing', status }); }
+    function startTyping() { 
+        if(typingTimeout) clearTimeout(typingTimeout); 
+        if(!isTyping && currentConn){ isTyping=true; sendTyping(true); } 
+        typingTimeout=setTimeout(()=>{ if(isTyping){ isTyping=false; sendTyping(false); } },1500); 
+    }
+    function showTypingIndicator(status, peerId) { 
+        const el=document.getElementById('typing-indicator'); 
+        if(el) el.textContent=status?`${users.get(peerId)?.name||peerId.slice(0,6)} يكتب...`:''; 
+    }
+
+    // تأكيد التسليم
+    function sendDeliveryReceipt(peerId, msgId) { users.get(peerId)?.conn?.send({ type:'delivery', msgId }); }
+    function showDeliveryConfirmed(msgId) { 
+        const el=document.querySelector(`.message[data-msgid="${msgId}"] .delivery-status`); 
+        if(el) el.textContent='✓✓'; 
+    }
+
+    // البث المباشر
+    async function startLiveStream() { 
+        if(!currentConn) return alert("اختر مستلم أولاً"); 
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true}); 
+        liveStreamPeer=new Peer(myUserId+'_live'); 
+        liveStreamPeer.on('call',call=>{ call.answer(stream); showLiveStreamVideo(call); }); 
+        liveStreamPeer.on('open',id=>{ currentConn.send({ type:'liveStreamOffer', streamId:id }); }); 
+    }
+    function showLiveStreamVideo(call) { 
+        let div=document.querySelector('.live-stream'); 
+        if(!div){ 
+            div=document.createElement('div'); div.className='live-stream'; 
+            div.innerHTML='<video autoplay></video><button>إغلاق</button>'; 
+            document.body.appendChild(div); 
+            div.querySelector('button').onclick=()=>div.remove(); 
+        } 
+        call.on('stream',s=>div.querySelector('video').srcObject=s); 
+    }
+    async function joinLiveStream(streamId) { 
+        const call=peer.call(streamId, await navigator.mediaDevices.getUserMedia({audio:true})); 
+        showLiveStreamVideo(call); 
+    }
+
+    // تذكيرات
+    function setReminder(message, delaySeconds) { 
+        const reminder={message, time:Date.now()+delaySeconds*1000, id:Date.now()}; 
+        reminders.push(reminder); 
+        localStorage.setItem('reminders',JSON.stringify(reminders)); 
+        appendSystemMessage(`⏰ تذكير: "${message}" بعد ${delaySeconds} ثانية`); 
+        setTimeout(()=>{ 
+            alert(`🔔 تذكير: ${message}`); 
+            reminders=reminders.filter(r=>r.id!==reminder.id); 
+            localStorage.setItem('reminders',JSON.stringify(reminders)); 
+        }, delaySeconds*1000); 
+    }
+
+    // إحصائيات
+    function showStats() { 
+        const dur=Math.floor((Date.now()-stats.sessionStart)/60); 
+        alert(`📊 إحصائيات الأمان:\nرسائل مرسلة مشفرة: ${stats.messagesSent}\nرسائل مستقبلة مفككة: ${stats.messagesReceived}\nمدة الجلسة الآمنة: ${dur} دقيقة`); 
+    }
+
+    // الثيمات
+    const themes={ default:{}, darkGreen:{'--bg':'#0a1f1a','--text':'#ccffcc','--msg-own':'#1e5631','--msg-other':'#2d5a3b'}, midnight:{'--bg':'#0a0a2a','--text':'#c0c0ff','--msg-own':'#3a3a8a','--msg-other':'#2a2a5a'} };
+    function applyTheme(themeName) { 
+        const t=themes[themeName]; 
+        if(t) for(let [k,v] of Object.entries(t)) document.documentElement.style.setProperty(k,v); 
+        localStorage.setItem('userTheme',themeName); 
+    }
+
+    // الرد على رسالة
+    function setReplyTo(msgId, text, sender) { 
+        replyToMessage={id:msgId, text, sender}; 
+        const bar=document.getElementById('reply-bar'); 
+        if(bar) bar.innerHTML=`↩️ الرد على ${sender}: "${text.slice(0,40)}" <button id="cancel-reply">×</button>`; 
+        document.getElementById('cancel-reply')?.addEventListener('click',()=>{ replyToMessage=null; bar.innerHTML=''; }); 
+    }
+
+    // تثبيت رسالة
+    function pinMessage(msgId, text) { 
+        pinnedMessage={id:msgId, text}; 
+        localStorage.setItem('pinnedMessage',JSON.stringify(pinnedMessage)); 
+        const div=document.getElementById('pinned-message'); 
+        if(div){ 
+            div.style.display='flex'; 
+            div.innerHTML=`📌 رسالة مثبتة: ${text} <button id="unpin">إزالة</button>`; 
+            document.getElementById('unpin')?.addEventListener('click',()=>{ 
+                pinnedMessage=null; 
+                localStorage.removeItem('pinnedMessage'); 
+                div.style.display='none'; 
+            }); 
+        } 
+    }
+
+    // البحث
+    function searchMessages(query) { 
+        if(!query.trim()) return; 
+        const msgs=document.querySelectorAll('#messages-container .message'); 
+        let first=null; 
+        msgs.forEach(m=>{ 
+            const content=m.querySelector('.content')?.innerText||''; 
+            if(content.toLowerCase().includes(query.toLowerCase())){ 
+                m.style.backgroundColor='#ffff99'; 
+                m.style.color='black'; 
+                if(!first) first=m; 
+            } else{ 
+                m.style.backgroundColor=''; 
+                m.style.color=''; 
+            } 
+        }); 
+        if(first) first.scrollIntoView({behavior:'smooth',block:'center'}); 
+    }
+
+    // عرض الرسائل
+    function appendMessage(text, isOwn, senderId, isImage=false, msgId=null, replyToId=null) {
+        const container = document.getElementById('messages-container');
+        const div = document.createElement('div'); div.className=`message ${isOwn?'own':''}`; if(msgId) div.setAttribute('data-msgid',msgId);
+        const senderSpan = document.createElement('div'); senderSpan.className='sender'; senderSpan.textContent = isOwn?'أنت':(users.get(senderId)?.name||senderId.slice(0,6)); div.appendChild(senderSpan);
+        if(replyToId && chats[currentRecipientId]){ 
+            const orig=chats[currentRecipientId].find(m=>m.msgId==replyToId); 
+            if(orig){ 
+                const rd=document.createElement('div'); rd.className='reply-indicator'; 
+                rd.textContent=`↩️ رداً على: ${orig.text.slice(0,40)}`; 
+                div.appendChild(rd); 
+            } 
+        }
+        const contentDiv = document.createElement('div'); contentDiv.className='content';
+        if(isImage && text.startsWith('data:image')) contentDiv.innerHTML = `<img src="${text}" style="max-width:200px; border-radius:12px;">`;
+        else contentDiv.textContent = text;
+        div.appendChild(contentDiv);
+        const reactionsDiv = document.createElement('div'); reactionsDiv.className='reactions';
+        ['👍','❤️','😂','😮'].forEach(r=>{ const span=document.createElement('span'); span.textContent=r; span.onclick=()=>{ if(currentConn) currentConn.send({type:'reaction', reaction:r, msgId:msgId}); }; reactionsDiv.appendChild(span); });
+        div.appendChild(reactionsDiv);
+        const statusSpan = document.createElement('span'); statusSpan.className='delivery-status'; statusSpan.textContent=isOwn?'✓':''; div.appendChild(statusSpan);
+        const replyBtn = document.createElement('span'); replyBtn.textContent='↩️'; replyBtn.style.cursor='pointer'; replyBtn.style.marginLeft='8px'; replyBtn.onclick=()=>setReplyTo(msgId, text, senderSpan.textContent); div.appendChild(replyBtn);
+        const pinBtn = document.createElement('span'); pinBtn.textContent='📌'; pinBtn.style.cursor='pointer'; pinBtn.style.marginLeft='8px'; pinBtn.onclick=()=>pinMessage(msgId, text); div.appendChild(pinBtn);
+        container.appendChild(div); div.scrollIntoView();
+    }
+    function appendSystemMessage(msg, isOwn=false) { appendMessage(msg, isOwn, "نظام", false, Date.now()); }
+
+    // إرسال الرسائل
+    async function sendMessage(text, isImage=false, imageDataURL=null) {
+        if (!currentConn) { 
+            if(!currentRecipientId) { appendSystemMessage("⚠️ اختر مستلم أولاً"); return; }
+            pendingMessages.push({ to: currentRecipientId, text, isImage, dataURL:imageDataURL, timestamp:Date.now() }); 
+            localStorage.setItem('pendingMessages',JSON.stringify(pendingMessages)); 
+            appendSystemMessage(`📦 رسالة مؤجلة (غير متصل)`); 
+            return; 
+        }
+        if (!currentRecipientId) { appendSystemMessage("⚠️ اختر مستلم أولاً"); return; }
+        const recipientInfo = users.get(currentRecipientId);
+        if (!recipientInfo || !recipientInfo.publicKey) return alert("المفتاح العام غير متوفر بعد");
+        let content = text; if (isImage && imageDataURL) content = imageDataURL;
+        const msgId = Date.now();
+        const encrypted = await encryptForPeer(content, recipientInfo.publicKey, isImage, replyToMessage?.id || null);
+        currentConn.send({ type: 'message', encrypted, msgId });
+        appendMessage(`أنت: ${isImage? '📷 صورة' : text}`, true, myUserId, isImage, msgId);
+        saveMessageToChat(currentRecipientId, isImage? 'صورة' : text, true, isImage?'image':'text', msgId);
+        stats.messagesSent++;
+        if(replyToMessage) { replyToMessage=null; document.getElementById('reply-bar').innerHTML=''; }
+    }
+    async function processPendingQueue() {
+        for(let i=0; i<pendingMessages.length; i++) {
+            const msg = pendingMessages[i];
+            if(users.has(msg.to) && users.get(msg.to).conn && users.get(msg.to).publicKey) {
+                currentRecipientId = msg.to; currentConn = users.get(msg.to).conn;
+                await sendMessage(msg.text, msg.isImage, msg.dataURL);
+                pendingMessages.splice(i,1); i--;
+            }
+        }
+        localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+    }
+
+    // ==================================================================
+    // PeerJS - الاتصال مع دعم رموز الغرف
+    // ==================================================================
+    function enableUI(enabled) { 
+        const elements = ['message-input','send-btn','video-call-btn','voice-input-btn','attach-file-btn','screen-share-btn','live-stream-btn','reminder-btn'];
+        elements.forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled = !enabled; });
+        if(enabled && document.getElementById('message-input')) document.getElementById('message-input').focus();
+    }
+
+    // توليد رمز غرفة عشوائي (6 أحرف/أرقام)
+    function generateRoomCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for(let i=0; i<6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    }
+
+    // ربط الغرف: تخزين الرموز في localStorage لسهولة الوصول
+    function saveRoom(room) {
+        localStorage.setItem('lastRoom', room);
+        document.getElementById('room-code').value = room;
+    }
+
+    document.getElementById('connect-btn').onclick = async () => {
+        const name = document.getElementById('my-name').value.trim() || "مستخدم";
+        myUserId = name + "_" + Math.random().toString(36).slice(2,6);
+        myKeyPair = await generateKeyPair();
+        myPublicKeyPem = await exportPublicKey();
+        peer = new Peer(myUserId, { host: '0.peerjs.com', port: 443, secure: true });
+        peer.on('open', id => { 
+            appendSystemMessage(`✅ متصل كـ ${myUserId}`, true); 
+            enableUI(true); 
+            // التحقق من وجود رمز غرفة في الرابط أو التخزين
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomFromUrl = urlParams.get('room');
+            if(roomFromUrl) {
+                document.getElementById('room-code').value = roomFromUrl;
+                saveRoom(roomFromUrl);
+                // محاولة الاتصال تلقائياً بالغرفة
+                connectToRoom(roomFromUrl);
+            } else if(roomCode) {
+                document.getElementById('room-code').value = roomCode;
+                connectToRoom(roomCode);
+            } else {
+                // إنشاء رمز غرفة تلقائي
+                const newRoom = generateRoomCode();
+                document.getElementById('room-code').value = newRoom;
+                saveRoom(newRoom);
+                appendSystemMessage(`🔑 رمز الغرفة: ${newRoom} (انضم إليه الطرف الآخر)`, true);
+            }
+        });
+        peer.on('connection', conn => { setupConnection(conn); });
+        peer.on('error', err => console.error(err));
+        processPendingQueue();
+    };
+
+    function connectToRoom(room) {
+        // في حالة PeerJS، نشارك المعرف نفسه كرمز للغرفة
+        // نقوم بتخزين room في localStorage ويمكن مشاركته
+        const link = window.location.href.split('?')[0] + `?room=${room}`;
+        navigator.clipboard.writeText(link).then(() => {
+            appendSystemMessage(`🔗 رابط الغرفة: ${link} (تم نسخه)`, true);
+        }).catch(() => {
+            appendSystemMessage(`🔗 انسخ هذا الرابط: ${link}`, true);
+        });
+        // نبحث عن أي جهاز آخر يستخدم نفس الرمز كمعرف (سيتم في setupConnection)
+        // في PeerJS، نربط الغرفة بمعرف المستخدم + الرمز
+        // نبث إشارة للانضمام
+        if(peer) {
+            // ننشر أننا في هذه الغرفة
+            peer.send({ type: 'room-announce', room: room, userId: myUserId, publicKey: myPublicKeyPem });
+        }
+    }
+
+    // استقبال إعلانات الغرف
+    function setupConnection(conn) {
+        conn.on('data', async (data) => {
+            if (blockedUsers.includes(conn.peer)) return;
+            if (data.type === 'publicKey') {
+                users.set(conn.peer, { name: data.name || conn.peer, publicKey: await importPublicKey(data.publicKey), conn, blocked: blockedUsers.includes(conn.peer) });
+                updateUsersList(); appendSystemMessage(`🔑 استلام مفتاح عام من ${data.name || conn.peer}`);
+            } else if (data.type === 'message') {
+                const text = await decryptMessage(data.encrypted);
+                const isImage = data.encrypted.isImage; const replyTo = data.encrypted.replyTo;
+                appendMessage(`من ${users.get(conn.peer)?.name || conn.peer}: ${text}`, false, conn.peer, isImage, data.msgId, replyTo);
+                saveMessageToChat(conn.peer, text, false, isImage?'image':'text', data.msgId);
+                stats.messagesReceived++; playNotification(); sendDeliveryReceipt(conn.peer, data.msgId);
+            } else if (data.type === 'delivery') { showDeliveryConfirmed(data.msgId); }
+            else if (data.type === 'typing') { showTypingIndicator(data.status, conn.peer); }
+            else if (data.type === 'liveStreamOffer') { joinLiveStream(data.streamId); }
+            else if (data.type === 'webrtc-offer') handleWebRTCOffer(conn.peer, data.offer);
+            else if (data.type === 'webrtc-answer') if(pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            else if (data.type === 'ice-candidate') if(pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            else if (data.type === 'reaction') { appendSystemMessage(`👍 تفاعل ${data.reaction} من ${users.get(conn.peer)?.name}`, false); }
+            else if (data.type === 'room-announce') {
+                // شخص آخر في نفس الغرفة
+                if(data.room === roomCode && data.userId !== myUserId) {
+                    appendSystemMessage(`👤 انضم ${data.userId} إلى الغرفة`, true);
+                    users.set(data.userId, { name: data.userId, publicKey: await importPublicKey(data.publicKey), conn, blocked: false });
+                    updateUsersList();
+                }
+            }
+        });
+        conn.on('close', () => { users.delete(conn.peer); updateUsersList(); appendSystemMessage(`❌ انقطع ${conn.peer}`); });
+        conn.send({ type: 'publicKey', publicKey: myPublicKeyPem, name: myUserId });
+        // إرسال إعلان الغرفة إذا كان لدينا رمز
+        if(roomCode) {
+            conn.send({ type: 'room-announce', room: roomCode, userId: myUserId, publicKey: myPublicKeyPem });
+        }
+    }
+
+    // أزرار الغرفة
+    document.getElementById('room-create').onclick = () => {
+        const newRoom = generateRoomCode();
+        document.getElementById('room-code').value = newRoom;
+        saveRoom(newRoom);
+        appendSystemMessage(`🔑 تم إنشاء غرفة: ${newRoom} (انضم إليه الطرف الآخر)`, true);
+        connectToRoom(newRoom);
+    };
+
+    document.getElementById('room-join').onclick = () => {
+        const room = document.getElementById('room-code').value.trim().toUpperCase();
+        if(room.length < 4) return alert("أدخل رمز غرفة صالح (4-8 أحرف)");
+        saveRoom(room);
+        connectToRoom(room);
+    };
+
+    function updateUsersList() { 
+        const list=document.getElementById('online-users-list'); 
+        list.innerHTML=''; 
+        for(let [id,info] of users.entries()){ 
+            if(blockedUsers.includes(id)) continue; 
+            const li=document.createElement('li'); 
+            li.textContent=info.name||id.slice(0,8); 
+            li.onclick=()=>{ 
+                document.querySelectorAll('#online-users-list li').forEach(l=>l.classList.remove('active')); 
+                li.classList.add('active'); 
+                currentRecipientId=id; 
+                currentConn=info.conn; 
+                loadChatHistory(id); 
+                appendSystemMessage(`✅ تم اختيار المستلم: ${info.name||id.slice(0,8)}`);
+            }; 
+            list.appendChild(li); 
+        } 
+        if(list.children.length===0) list.innerHTML='<li>لا يوجد متصلون. أنشئ غرفة أو انضم إلى واحدة.</li>'; 
+    }
+    function loadChatHistory(peerId) { 
+        const container=document.getElementById('messages-container'); 
+        container.innerHTML=''; 
+        if(chats[peerId]) chats[peerId].forEach(msg=>{ 
+            appendMessage(msg.text, msg.from===myUserId, msg.from, msg.type==='image', msg.msgId); 
+        }); 
+    }
+
+    // ==================================================================
+    // أزرار الإدخال والصوت والصورة والتذكير والإحصائيات والبحث
+    // ==================================================================
+    document.getElementById('send-btn').onclick = async () => { 
+        const inp=document.getElementById('message-input'); 
+        if(inp.value.trim()) await sendMessage(inp.value); 
+        inp.value=''; 
+    };
+    document.getElementById('attach-file-btn').onclick = () => { 
+        const inp=document.createElement('input'); 
+        inp.type='file'; 
+        inp.accept='image/*'; 
+        inp.onchange=async e=>{ 
+            const file=e.target.files[0]; 
+            if(!file) return; 
+            const reader=new FileReader(); 
+            reader.onload=async ev=>{ 
+                await sendMessage('صورة', true, ev.target.result); 
+            }; 
+            reader.readAsDataURL(file); 
+        }; 
+        inp.click(); 
+    };
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+    let recognition=null; 
+    if(SpeechRecognition) recognition=new SpeechRecognition(); 
+    recognition.continuous=false; recognition.lang='ar';
+    document.getElementById('voice-input-btn').onclick = () => { 
+        if(!recognition) return alert("المتصفح لا يدعم الإملاء الصوتي"); 
+        recognition.start(); 
+        recognition.onresult=e=>{ 
+            document.getElementById('message-input').value=e.results[0][0].transcript; 
+        }; 
+    };
+    document.getElementById('reminder-btn').onclick = () => { 
+        const msg=prompt("نص التذكير:"); 
+        const sec=parseInt(prompt("بعد كم ثانية؟")); 
+        if(msg && sec) setReminder(msg, sec); 
+    };
+    document.getElementById('stats-btn').onclick = showStats;
+    document.getElementById('theme-select').onchange = e => applyTheme(e.target.value);
+    document.getElementById('search-btn').onclick = () => searchMessages(document.getElementById('search-input').value);
+    document.getElementById('live-stream-btn').onclick = startLiveStream;
+    document.getElementById('fingerprint-btn').onclick = async () => { 
+        const fp=await getFingerprint(); 
+        alert(`بصمة مفتاحك العام (SHA-256): ${fp}\nاطلب من الطرف الآخر مشاركة بصمته وقارنها يدوياً لمنع هجمات MITM.`); 
+    };
+
+    // ==================================================================
+    // مكالمات الفيديو ومشاركة الشاشة
+    // ==================================================================
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    async function startCall(stream) { 
+        if(!currentConn) { appendSystemMessage("❌ لا يوجد اتصال مع المستلم"); return; }
+        if(!currentRecipientId) { appendSystemMessage("❌ اختر مستلم أولاً من القائمة"); return; }
+        pc=new RTCPeerConnection(config); 
+        stream.getTracks().forEach(t=>pc.addTrack(t,stream)); 
+        pc.ontrack=e=>showRemoteVideo(e.streams[0]); 
+        pc.onicecandidate=e=>{ if(e.candidate) currentConn.send({type:'ice-candidate', candidate:e.candidate}); }; 
+        const offer=await pc.createOffer(); 
+        await pc.setLocalDescription(offer); 
+        currentConn.send({type:'webrtc-offer', offer}); 
+    }
+    async function handleWebRTCOffer(fromId, offer) { 
+        if(!confirm(`مكالمة فيديو مشفرة من ${users.get(fromId)?.name || fromId.slice(0,6)}. هل تقبل؟`)) return; 
+        try {
+            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true}); 
+            pc=new RTCPeerConnection(config); 
+            localStream.getTracks().forEach(t=>pc.addTrack(t,localStream)); 
+            await pc.setRemoteDescription(new RTCSessionDescription(offer)); 
+            const answer=await pc.createAnswer(); 
+            await pc.setLocalDescription(answer); 
+            users.get(fromId)?.conn?.send({type:'webrtc-answer', answer}); 
+            pc.ontrack=e=>showRemoteVideo(e.streams[0]); 
+            pc.onicecandidate=e=>{ if(e.candidate) users.get(fromId)?.conn?.send({type:'ice-candidate', candidate:e.candidate}); }; 
+        } catch(e) { alert("تعذر الوصول إلى الكاميرا/الميكروفون"); }
+    }
+    function showRemoteVideo(stream) { 
+        let div=document.querySelector('.remote-video'); 
+        if(!div){ 
+            div=document.createElement('div'); div.className='remote-video'; 
+            div.innerHTML='<video autoplay></video><button>إغلاق المكالمة</button>'; 
+            document.body.appendChild(div); 
+            div.querySelector('button').onclick=()=>{ 
+                div.remove();
+                if(pc) pc.close();
+                if(localStream) localStream.getTracks().forEach(t=>t.stop());
+                pc=null;
+                appendSystemMessage("🔴 تم إنهاء المكالمة");
+            }; 
+        } 
+        div.querySelector('video').srcObject=stream; 
+    }
+    document.getElementById('video-call-btn').onclick = async () => { 
+        if(!currentConn) return alert("لا يوجد اتصال مع مستلم. تأكد من اختيار مستلم من القائمة.");
+        if(!currentRecipientId) return alert("اختر مستلم أولاً من قائمة المتصلين.");
+        try {
+            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true}); 
+            startCall(localStream); 
+        } catch(e) { alert("لا يمكن الوصول إلى الكاميرا/الميكروفون"); }
+    };
+    document.getElementById('screen-share-btn').onclick = async () => { 
+        if(!currentConn) return alert("اختر مستلم أولاً"); 
+        if(isScreenSharing) return; 
+        try {
+            const screenStream=await navigator.mediaDevices.getDisplayMedia({video:true}); 
+            if(localStream) localStream.getTracks().forEach(t=>t.stop()); 
+            localStream=screenStream; 
+            if(pc){ 
+                const senders=pc.getSenders(); 
+                const vs=senders.find(s=>s.track.kind==='video'); 
+                if(vs) vs.replaceTrack(screenStream.getVideoTracks()[0]); 
+            } else startCall(localStream); 
+            isScreenSharing=true; 
+            screenStream.getVideoTracks()[0].onended=()=>{ isScreenSharing=false; }; 
+        } catch(e) { alert("تعذر الوصول إلى الشاشة"); }
+    };
+
+    // ==================================================================
+    // النسخ الاحتياطي، تصدير المحادثات، بصمة الصوت، مسح التخزين
+    // ==================================================================
+    async function exportBackup() { 
+        if(!myKeyPair) return; 
+        const backup={ 
+            privateKey: await crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey), 
+            publicKey: myPublicKeyPem, 
+            blockedUsers, 
+            chats, 
+            theme: localStorage.getItem('userTheme')||'default' 
+        }; 
+        const json=JSON.stringify(backup, (k,v)=>v instanceof ArrayBuffer?ab2b64(v):v); 
+        const blob=new Blob([json],{type:'application/json'}); 
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup_secure.json'; a.click(); 
+    }
+    document.getElementById('backup-export').onclick=exportBackup;
+    document.getElementById('export-chats').onclick=()=>{ 
+        const blob=new Blob([JSON.stringify(chats)],{type:'application/json'}); 
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='chats.json'; a.click(); 
+    };
+    async function recordVoiceFingerprint() { 
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true}); 
+        const mediaRecorder=new MediaRecorder(stream); 
+        let chunks=[]; 
+        mediaRecorder.ondataavailable=e=>chunks.push(e.data); 
+        mediaRecorder.onstop=async()=>{ 
+            const blob=new Blob(chunks,{type:'audio/webm'}); 
+            const buffer=await blob.arrayBuffer(); 
+            const hash=await crypto.subtle.digest('SHA-256', buffer); 
+            alert(`بصمة صوتك (SHA-256): ${ab2b64(hash).slice(0,16)}`); 
+            stream.getTracks().forEach(t=>t.stop()); 
+        }; 
+        mediaRecorder.start(); 
+        setTimeout(()=>mediaRecorder.stop(),3000); 
+    }
+    document.getElementById('voice-fingerprint-btn').onclick=recordVoiceFingerprint;
+    document.getElementById('clear-storage').onclick=()=>{ 
+        if(confirm("حذف جميع البيانات المخزنة محلياً (المفاتيح والمحادثات)؟")){ 
+            localStorage.clear(); 
+            location.reload(); 
+        } 
+    };
+
+    // ==================================================================
+    // استعادة التذكيرات والرسالة المثبتة والثيمات
+    // ==================================================================
+    reminders.forEach(r=>{ 
+        const delay=r.time-Date.now(); 
+        if(delay>0) setTimeout(()=>{ 
+            alert(`🔔 تذكير: ${r.message}`); 
+            reminders=reminders.filter(rem=>rem.id!==r.id); 
+            localStorage.setItem('reminders',JSON.stringify(reminders)); 
+        }, delay); 
+    });
+    const savedPin=localStorage.getItem('pinnedMessage'); 
+    if(savedPin){ const p=JSON.parse(savedPin); pinMessage(p.id, p.text); }
+    applyTheme(localStorage.getItem('userTheme')||'default');
+    function setTheme(theme) { 
+        document.body.classList.toggle('light', theme==='light'); 
+        localStorage.setItem('theme',theme); 
+    }
+    document.getElementById('themeToggle').onclick = () => { 
+        const newTheme = document.body.classList.contains('light') ? 'dark' : 'light'; 
+        setTheme(newTheme); 
+    };
+    setTheme(localStorage.getItem('theme')||'dark');
+    document.getElementById('message-input').addEventListener('input', startTyping);
+
+    // ==================================================================
+    // تتبع اليد
+    // ==================================================================
+    const handVideo=document.getElementById('hand-video'), handCanvas=document.getElementById('hand-canvas'), ctx=handCanvas.getContext('2d');
+    let fingerCursor=null, lastHandPos={x:0,y:0};
+    if(navigator.mediaDevices) navigator.mediaDevices.getUserMedia({video:true}).then(s=>handVideo.srcObject=s).catch(e=>console.warn);
+    const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.6});
+    hands.onResults(r=>{ 
+        ctx.clearRect(0,0,handCanvas.width,handCanvas.height); 
+        if(r.multiHandLandmarks?.length){ 
+            const lm=r.multiHandLandmarks[0]; 
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#0ff',lineWidth:2}); 
+            const idx=lm[8]; 
+            const x=idx.x*window.innerWidth, y=idx.y*window.innerHeight; 
+            if(!fingerCursor){ 
+                fingerCursor=document.createElement('div'); 
+                fingerCursor.className='finger-cursor'; 
+                document.body.appendChild(fingerCursor); 
+            } 
+            fingerCursor.style.left=x-11+'px'; 
+            fingerCursor.style.top=y-11+'px'; 
+            const thumb=lm[4]; 
+            if(Math.hypot(thumb.x-idx.x, thumb.y-idx.y)<0.05){ 
+                const elem=document.elementFromPoint(x,y); 
+                if(elem) elem.click(); 
+                if(navigator.vibrate) navigator.vibrate(50); 
+            } 
+            const wrist=lm[0]; 
+            const cx=wrist.x*window.innerWidth, cy=wrist.y*window.innerHeight; 
+            if(lastHandPos.x){ 
+                const dy=cy-lastHandPos.y; 
+                if(Math.abs(dy)>15) window.scrollBy(0,-dy*0.5); 
+            } 
+            lastHandPos={x:cx,y:cy}; 
+        } else{ 
+            if(fingerCursor) fingerCursor.remove(); 
+            fingerCursor=null; 
+            lastHandPos={x:0,y:0}; 
+        } 
+    });
+    const camera=new Camera(handVideo,{onFrame:async()=>await hands.send({image:handVideo})}); 
+    camera.start();
+
+    // ==================================================================
+    // أثر الفأرة
+    // ==================================================================
+    document.addEventListener('mousemove',e=>{ 
+        const trail=document.createElement('div'); 
+        trail.className='trail-particle'; 
+        trail.style.left=e.clientX-6+'px'; 
+        trail.style.top=e.clientY-6+'px'; 
+        document.getElementById('cursor-trail').appendChild(trail); 
+        setTimeout(()=>trail.remove(),500); 
+    });
+
+    // ==================================================================
+    // التحكم بحجم نافذة الكاميرا وسحبها
+    // ==================================================================
+    const handCamDiv=document.getElementById('handCam'); 
+    let w=220,h=165;
+    document.getElementById('zoomIn').onclick=()=>{ w+=20; h+=15; handCamDiv.style.width=w+'px'; handCamDiv.style.height=h+'px'; };
+    document.getElementById('zoomOut').onclick=()=>{ w=Math.max(140,w-20); h=Math.max(105,h-15); handCamDiv.style.width=w+'px'; handCamDiv.style.height=h+'px'; };
+    let drag=false, offX, offY;
+    handCamDiv.addEventListener('mousedown',e=>{ 
+        if(e.target.closest('.hand-cam-controls')) return; 
+        drag=true; 
+        const rect=handCamDiv.getBoundingClientRect(); 
+        offX=e.clientX-rect.left; 
+        offY=e.clientY-rect.top; 
+    });
+    window.addEventListener('mousemove',e=>{ 
+        if(!drag) return; 
+        let left=e.clientX-offX, top=e.clientY-offY; 
+        left=Math.min(window.innerWidth-handCamDiv.offsetWidth, Math.max(0,left)); 
+        top=Math.min(window.innerHeight-handCamDiv.offsetHeight, Math.max(0,top)); 
+        handCamDiv.style.left=left+'px'; 
+        handCamDiv.style.top=top+'px'; 
+        handCamDiv.style.right='auto'; 
+        handCamDiv.style.bottom='auto'; 
+    });
+    window.addEventListener('mouseup',()=>drag=false);
+
+    // ==================================================================
+    // تثبيت PWA
+    // ==================================================================
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('install-btn').style.display = 'block';
+    });
+    document.getElementById('install-btn').onclick = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const result = await deferredPrompt.userChoice;
+            if (result.outcome === 'accepted') {
+                console.log('تم تثبيت التطبيق');
+            }
+            deferredPrompt = null;
+            document.getElementById('install-btn').style.display = 'none';
+        }
+    };
+</script>
+</body>
+</html>
