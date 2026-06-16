@@ -3,16 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>المرسال الآمن - النسخة النهائية المتكاملة</title>
-    <link rel="manifest" href="data:application/json;charset=utf-8,{
-        &quot;name&quot;:&quot;Secure Messenger&quot;,
-        &quot;short_name&quot;:&quot;Messenger&quot;,
-        &quot;start_url&quot;:&quot;.&quot;,
-        &quot;display&quot;:&quot;standalone&quot;,
-        &quot;background_color&quot;:&quot;#0b1120&quot;,
-        &quot;theme_color&quot;:&quot;#0b1120&quot;,
-        &quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230b1120'/%3E%3Ctext x='50' y='50' text-anchor='middle' dy='.35em' font-size='60' fill='%2377ddff'%3E🔒%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+    <title>📱 مرسال آمن - مثل واتساب</title>
     <style>
+        /* ===== الأنماط العامة ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         :root {
             --bg1: #0a0f1e; --bg2: #010101; --glass: rgba(15,25,45,0.4);
@@ -34,9 +27,9 @@
             display: flex; flex-direction: column; transition: 0.2s; max-width: 1400px; }
         .glass:hover { transform: scale(1.01); }
         .header { padding: 20px 30px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
-        .header h1 { background: linear-gradient(135deg, #ffb3ff, #77ddff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .user-info { display: flex; gap: 12px; align-items: center; }
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .header h1 { background: linear-gradient(135deg, #ffb3ff, #77ddff); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.4rem; }
+        .user-info { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         input, button, select { background: rgba(0,0,0,0.6); border: 1px solid #77aaff; border-radius: 60px;
             padding: 8px 20px; color: white; font-weight: bold; outline: none; }
         body.light input, body.light button, body.light select { background: rgba(0,0,0,0.15); color: #000; }
@@ -48,8 +41,9 @@
         .sidebar h3 { margin-bottom: 5px; color: #ccddff; }
         #online-users-list { list-style: none; }
         #online-users-list li { padding: 8px 12px; margin: 8px 0; background: rgba(255,255,255,0.08);
-            border-radius: 40px; cursor: pointer; }
+            border-radius: 40px; cursor: pointer; transition: 0.1s; }
         #online-users-list li.active { background: #2c7da0; box-shadow: 0 0 8px #2c7da0; }
+        #online-users-list li:hover { background: rgba(255,255,255,0.2); }
         .chat-area { flex: 1; display: flex; flex-direction: column; }
         #messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .message { background: var(--other-msg); border-radius: 28px; padding: 8px 20px; width: fit-content;
@@ -119,23 +113,39 @@
         @media (max-width: 600px) {
             .camera-container { width: 200px; height: 150px; bottom: 10px; right: 10px; }
             .camera-controls button { font-size: 11px; padding: 1px 6px; }
+            .sidebar { width: 200px; }
         }
+
+        /* ===== رسالة حالة الاتصال ===== */
+        .connection-status {
+            font-size: 12px; padding: 4px 12px; border-radius: 30px; background: rgba(0,0,0,0.5);
+            color: #aaa; display: inline-block; margin-right: 10px;
+        }
+        .connection-status.online { color: #2cb67d; background: rgba(44,182,125,0.2); }
+        .connection-status.offline { color: #ff6b6b; background: rgba(255,107,107,0.2); }
+
+        .remote-video { position: fixed; top: 20px; right: 20px; width: 280px; border-radius: 20px;
+            border: 2px solid white; background: black; z-index: 1000; overflow: hidden; }
+        .remote-video video { width: 100%; border-radius: 20px; }
+        .remote-video button { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none;
+            border-radius: 30px; padding: 4px 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 <div class="glass">
     <div class="header">
-        <h1>🔒 مرسال آمن - النسخة النهائية</h1>
+        <h1>📱 مرسال آمن</h1>
         <div class="user-info">
             <input type="text" id="my-name" placeholder="اسمك" value="user" autocomplete="off" style="max-width:120px;">
             <button id="connect-btn">اتصال</button>
+            <span class="connection-status" id="connStatus">⏳ جاري الاتصال...</span>
         </div>
     </div>
     <div class="main-area">
         <div class="sidebar">
             <div class="room-code-box">
                 <span>🔑</span>
-                <input type="text" id="room-code" placeholder="رمز الغرفة" maxlength="8" style="flex:1; min-width:80px; background:rgba(0,0,0,0.4);">
+                <input type="text" id="room-code" placeholder="رمز الغرفة" value="room1" maxlength="8" style="flex:1; min-width:80px; background:rgba(0,0,0,0.4);">
                 <button id="room-create">إنشاء</button>
                 <button id="room-join">انضمام</button>
             </div>
@@ -218,7 +228,14 @@
     let stats = { messagesSent:0, messagesReceived:0, sessionStart:Date.now() };
     let typingTimeout, isTyping=false;
     let pc=null, localStream=null, isScreenSharing=false, liveStreamPeer=null;
-    let roomCode = localStorage.getItem('lastRoom') || '';
+    let roomCode = localStorage.getItem('lastRoom') || 'room1';
+    let connectionAttempts = 0;
+    const MAX_RETRIES = 3;
+    const PEER_HOSTS = [
+        { host: '0.peerjs.com', port: 443, secure: true },
+        { host: 'peerjs-server.herokuapp.com', port: 443, secure: true },
+        { host: '0.peerjs.com', port: 80, secure: false }
+    ];
 
     async function generateKeyPair() {
         return await crypto.subtle.generateKey({
@@ -279,7 +296,7 @@
     function loadChatHistory(peerId) { currentRecipientId = peerId; loadAllChats(); }
 
     // ==================================================================
-    // 2. الإيموجي (تم إصلاح الإغلاق)
+    // 2. الإيموجي (مستقر)
     // ==================================================================
     const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','👍','👎','👏','🙌','🤲','🤝','🙏','✌️','🤟','🤘','👌','🤌','🤞','🤙','👋','🖐️','✋','🖖','👀','👁️','🧠','🫀','🫁','💋','👄','🦷','👅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🪐','🌍','🌎','🌏','🌐','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','⚡','🔥','💧','🌊','🌟','🌈','☂️','☔','⛱️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌬️','🧘','🛀','🛌','🧖','🧗','🧘‍♂️','🧘‍♀️','🤸','🤼','🤽','🤾','🤹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🦸','🦹','🧠','🦾','🦿','🦴','🦷','👀','👁️','👅','👄','🫀','🫁','🧬','🦠','🧫','🧪','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🧺','🧻','🧼','🧽','🧴','🪒','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🧰','🔧','🔩','⚙️','🗜️','⚖️','🔗','⛓️','🧲','⚔️','🗡️','🛡️','🏹','🪃','🪄','🪢','🪣','🪤','🪥','🪦','🪧','🪨','🪶','🪷','🪹','🪺','🪻','🪼','🪽','🪾','🪿','🫀','🫁','🫂','🫃','🫄','🫅','🫆','🫇','🫈','🫉','🫊','🫋','🫌','🫍','🫎','🫏','🫐','🫑','🫒','🫓','🫔','🫕','🫖','🫗','🫘','🫙','🫚','🫛','🫜','🫝','🫞','🫟','🫠'];
 
@@ -297,13 +314,10 @@
     }
     buildEmojiPicker();
 
-    // فتح/إغلاق اللوحة
     emojiToggleBtn.onclick = function(e) {
         e.stopPropagation();
         emojiPicker.classList.toggle('show');
     };
-
-    // إغلاق اللوحة عند النقر خارجها
     document.addEventListener('click', function(e) {
         if (emojiPicker.classList.contains('show')) {
             if (!emojiPicker.contains(e.target) && !emojiToggleBtn.contains(e.target)) {
@@ -311,14 +325,8 @@
             }
         }
     });
-
-    // منع إغلاق اللوحة عند النقر داخلها
     emojiPicker.addEventListener('click', function(e) {
         e.stopPropagation();
-    });
-
-    // إضافة الإيموجي للحقل
-    emojiPicker.addEventListener('click', function(e) {
         if (e.target.tagName === 'BUTTON') {
             const input = document.getElementById('message-input');
             input.value += e.target.textContent;
@@ -327,11 +335,9 @@
     });
 
     // ==================================================================
-    // 3. الكاميرا (تعمل بشكل مستقل وموثوق)
+    // 3. الكاميرا المتطورة
     // ==================================================================
-    let cameraStream = null;
-    let cameraEnabled = false;
-    let useFrontCamera = false;
+    let cameraStream = null; let cameraEnabled = false; let useFrontCamera = false;
     const cameraContainer = document.getElementById('cameraContainer');
     const cameraVideo = document.getElementById('camera-video');
     const cameraCanvas = document.getElementById('camera-canvas');
@@ -345,14 +351,7 @@
 
     async function startCamera() {
         try {
-            const constraints = {
-                video: {
-                    facingMode: useFrontCamera ? 'user' : 'environment',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                },
-                audio: false
-            };
+            const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
             cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
             cameraVideo.srcObject = cameraStream;
             await cameraVideo.play();
@@ -360,10 +359,6 @@
             cameraToggleBtn.textContent = '⏸️';
             cameraOverlay.classList.remove('show');
             console.log('📷 الكاميرا تعمل');
-            // إعادة تشغيل MediaPipe إذا كان موجوداً
-            if (typeof hands !== 'undefined' && hands) {
-                // hands سيتم إعادة ربطه في المعالج المنفصل
-            }
             return true;
         } catch (err) {
             console.error('❌ فشل تشغيل الكاميرا:', err);
@@ -372,36 +367,20 @@
             return false;
         }
     }
-
     function stopCamera() {
-        if (cameraStream) {
-            cameraStream.getTracks().forEach(track => track.stop());
-            cameraStream = null;
-        }
+        if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; }
         cameraVideo.srcObject = null;
         cameraEnabled = false;
         cameraToggleBtn.textContent = '▶️';
-        console.log('📷 الكاميرا متوقفة');
     }
-
-    cameraToggleBtn.onclick = () => {
-        if (cameraEnabled) stopCamera();
-        else startCamera();
-    };
-    cameraSwitchBtn.onclick = async () => {
-        useFrontCamera = !useFrontCamera;
-        if (cameraEnabled) {
-            stopCamera();
-            await startCamera();
-        }
-    };
+    cameraToggleBtn.onclick = () => { if (cameraEnabled) stopCamera(); else startCamera(); };
+    cameraSwitchBtn.onclick = async () => { useFrontCamera = !useFrontCamera; if (cameraEnabled) { stopCamera(); await startCamera(); } };
     let camW = 320, camH = 240;
     cameraZoomIn.onclick = () => { camW += 30; camH += 22; cameraContainer.style.width = camW + 'px'; cameraContainer.style.height = camH + 'px'; };
     cameraZoomOut.onclick = () => { camW = Math.max(200, camW - 30); camH = Math.max(150, camH - 22); cameraContainer.style.width = camW + 'px'; cameraContainer.style.height = camH + 'px'; };
     cameraCloseBtn.onclick = () => { cameraContainer.style.display = 'none'; stopCamera(); };
     cameraRetryBtn.onclick = startCamera;
 
-    // سحب الكاميرا
     let isDraggingCam = false, dragOffX = 0, dragOffY = 0;
     cameraContainer.addEventListener('mousedown', (e) => {
         if (e.target.closest('.camera-controls') || e.target.closest('.camera-resize-handle')) return;
@@ -423,12 +402,10 @@
         cameraContainer.style.bottom = 'auto';
     });
     document.addEventListener('mouseup', () => { isDraggingCam = false; cameraContainer.style.cursor = 'default'; });
-
-    // بدء الكاميرا تلقائياً بعد تحميل الصفحة
     setTimeout(startCamera, 600);
 
     // ==================================================================
-    // 4. دوال الكتابة والتأكيد والبث والتذكيرات والإحصائيات
+    // 4. الدوال الأساسية (Typing, Delivery, LiveStream, Reminder, Stats, Themes, Reply, Pin, Search)
     // ==================================================================
     function sendTyping(status) { if(currentConn?.open) currentConn.send({ type:'typing', status }); }
     function startTyping() {
@@ -502,7 +479,7 @@
     }
 
     // ==================================================================
-    // 5. عرض الرسائل
+    // 5. عرض وإرسال الرسائل
     // ==================================================================
     function appendMessage(text, isOwn, senderId, isImage=false, msgId=null, replyToId=null) {
         const container = document.getElementById('messages-container');
@@ -527,9 +504,6 @@
     }
     function appendSystemMessage(msg, isOwn=false) { appendMessage(msg, isOwn, "نظام", false, Date.now()); }
 
-    // ==================================================================
-    // 6. إرسال الرسائل
-    // ==================================================================
     async function sendMessage(text, isImage=false, imageDataURL=null) {
         if (!currentConn) {
             if(!currentRecipientId) { appendSystemMessage("⚠️ اختر مستلم أولاً"); return; }
@@ -563,12 +537,14 @@
     }
 
     // ==================================================================
-    // 7. PeerJS
+    // 6. الاتصال عبر PeerJS مع إعادة المحاولة التلقائية
     // ==================================================================
     function enableUI(enabled) {
         const elements = ['message-input','send-btn','video-call-btn','voice-input-btn','attach-file-btn','screen-share-btn','live-stream-btn','reminder-btn','emoji-toggle-btn'];
         elements.forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled = !enabled; });
         if(enabled && document.getElementById('message-input')) document.getElementById('message-input').focus();
+        document.getElementById('connStatus').textContent = enabled ? '🟢 متصل' : '⏳ جاري الاتصال...';
+        document.getElementById('connStatus').className = 'connection-status' + (enabled ? ' online' : '');
     }
 
     function generateRoomCode() {
@@ -583,15 +559,22 @@
         document.getElementById('room-code').value = room;
     }
 
-    document.getElementById('connect-btn').onclick = async () => {
-        const name = document.getElementById('my-name').value.trim() || "مستخدم";
-        myUserId = name + "_" + Math.random().toString(36).slice(2,6);
-        myKeyPair = await generateKeyPair();
-        myPublicKeyPem = await exportPublicKey();
-        peer = new Peer(myUserId, { host: '0.peerjs.com', port: 443, secure: true });
+    let peerInitialized = false;
+
+    function initPeer(hostIndex = 0) {
+        if (hostIndex >= PEER_HOSTS.length) {
+            appendSystemMessage('❌ فشل الاتصال بجميع خوادم الإشارات. تحقق من اتصالك بالإنترنت.', true);
+            enableUI(false);
+            return;
+        }
+        const config = PEER_HOSTS[hostIndex];
+        appendSystemMessage(`🔄 محاولة الاتصال بالخادم ${config.host}...`, true);
+        peer = new Peer(myUserId, config);
         peer.on('open', id => {
-            appendSystemMessage(`✅ متصل كـ ${myUserId}`, true);
+            appendSystemMessage(`✅ متصل كـ ${myUserId} عبر ${config.host}`, true);
+            peerInitialized = true;
             enableUI(true);
+            // بعد الاتصال، نتحقق من الرابط أو التخزين
             const urlParams = new URLSearchParams(window.location.search);
             const roomFromUrl = urlParams.get('room');
             const peerFromUrl = urlParams.get('peer');
@@ -616,10 +599,29 @@
                 appendSystemMessage(`🔑 رمز الغرفة: ${newRoom} (انضم إليه الطرف الآخر)`, true);
                 connectToRoom(newRoom);
             }
+            processPendingQueue();
         });
         peer.on('connection', conn => { setupConnection(conn); });
-        peer.on('error', err => console.error(err));
-        processPendingQueue();
+        peer.on('error', err => {
+            console.warn(`⚠️ خطأ في الخادم ${config.host}:`, err);
+            if (!peerInitialized) {
+                // جرب الخادم التالي
+                initPeer(hostIndex + 1);
+            }
+        });
+        peer.on('disconnected', () => {
+            appendSystemMessage('⚠️ انقطع الاتصال بالخادم، محاولة إعادة الاتصال...', true);
+            peer.reconnect();
+        });
+    }
+
+    document.getElementById('connect-btn').onclick = async () => {
+        const name = document.getElementById('my-name').value.trim() || "مستخدم";
+        myUserId = name + "_" + Math.random().toString(36).slice(2,6);
+        myKeyPair = await generateKeyPair();
+        myPublicKeyPem = await exportPublicKey();
+        // بدء محاولة الاتصال مع إعادة المحاولة التلقائية
+        initPeer(0);
     };
 
     function connectToRoom(room) {
@@ -718,7 +720,7 @@
     }
 
     // ==================================================================
-    // 8. الأزرار
+    // 7. الأزرار والميزات الأخرى
     // ==================================================================
     document.getElementById('send-btn').onclick = async () => {
         const inp=document.getElementById('message-input');
@@ -766,7 +768,7 @@
     };
 
     // ==================================================================
-    // 9. مكالمات الفيديو
+    // 8. مكالمات الفيديو ومشاركة الشاشة
     // ==================================================================
     const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     async function startCall(stream) {
@@ -836,7 +838,7 @@
     };
 
     // ==================================================================
-    // 10. النسخ الاحتياطي والتصدير وبصمة الصوت ومسح التخزين
+    // 9. النسخ الاحتياطي والتصدير وبصمة الصوت ومسح التخزين
     // ==================================================================
     async function exportBackup() {
         if(!myKeyPair) return;
@@ -874,7 +876,7 @@
     };
 
     // ==================================================================
-    // 11. استعادة التذكيرات والرسالة المثبتة والثيمات
+    // 10. استعادة التذكيرات والرسالة المثبتة والثيمات
     // ==================================================================
     reminders.forEach(r=>{
         const delay=r.time-Date.now();
@@ -899,16 +901,11 @@
     document.getElementById('message-input').addEventListener('input', startTyping);
 
     // ==================================================================
-    // 12. تتبع اليد (MediaPipe) - يتم تشغيله على الكانفاس الخاص بالكاميرا
+    // 11. تتبع اليد (MediaPipe)
     // ==================================================================
     const ctx = cameraCanvas.getContext('2d');
     let fingerCursor = null;
     if (navigator.mediaDevices) {
-        // لا نطلب الكاميرا مرة أخرى، نستخدم التيار الموجود
-        // ولكن MediaPipe يحتاج إلى فيديو منفصل، لذلك نربطه بكاميرا منفصلة إن أمكن
-        // بدلاً من ذلك، نستخدم الكاميرا الموجودة بالفعل
-        // لكننا سنعيد توجيه MediaPipe لاستخدام الفيديو نفسه
-        // بما أننا نستخدم كاميرا واحدة، سنمررها إلى MediaPipe
         const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
         hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6 });
         hands.onResults((results) => {
@@ -917,7 +914,6 @@
                 const landmarks = results.multiHandLandmarks[0];
                 drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00ffcc', lineWidth: 2 });
                 drawLandmarks(ctx, landmarks, { color: '#ff00ff', lineWidth: 1 });
-                // تحريك المؤشر الوهمي (اختياري)
                 const indexTip = landmarks[8];
                 if (indexTip) {
                     const x = indexTip.x * window.innerWidth;
@@ -934,19 +930,12 @@
                 if (fingerCursor) { fingerCursor.remove(); fingerCursor = null; }
             }
         });
-        // ربط MediaPipe بفيديو الكاميرا (يتم تشغيله عند توفر التيار)
-        const camera = new Camera(cameraVideo, {
-            onFrame: async () => {
-                if (cameraVideo.readyState >= 2) {
-                    await hands.send({ image: cameraVideo });
-                }
-            }
-        });
+        const camera = new Camera(cameraVideo, { onFrame: async () => { if (cameraVideo.readyState >= 2) { await hands.send({ image: cameraVideo }); } } });
         camera.start();
     }
 
     // ==================================================================
-    // 13. أثر الفأرة
+    // 12. أثر الفأرة والإرسال بالضغط على Enter
     // ==================================================================
     document.addEventListener('mousemove', e => {
         const trail = document.createElement('div');
@@ -957,9 +946,6 @@
         setTimeout(() => trail.remove(), 500);
     });
 
-    // ==================================================================
-    // 14. الإرسال بالضغط على Enter
-    // ==================================================================
     document.getElementById('message-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -968,9 +954,6 @@
         }
     });
 
-    // ==================================================================
-    // 15. إشعارات صوتية
-    // ==================================================================
     function playNotification(isOwn=false) {
         if(isOwn) return;
         try{
@@ -988,7 +971,7 @@
     }
 
     // ==================================================================
-    // 16. تثبيت PWA
+    // 13. تثبيت PWA
     // ==================================================================
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -1007,6 +990,9 @@
             document.getElementById('install-btn').style.display = 'none';
         }
     };
+
+    // ضبط رمز الغرفة الأولي من localStorage
+    document.getElementById('room-code').value = roomCode;
 </script>
 </body>
 </html>
