@@ -307,19 +307,30 @@ function buildEmojiPicker() {
 buildEmojiPicker();
 
 // فتح/إغلاق اللوحة عند النقر على الزر (تعديل)
+// 1. معالج النقر الخاص بزر التبديل (فتح / إغلاق مباشر)
 emojiToggleBtn.onclick = function(e) {
-    e.stopPropagation();
+    e.stopPropagation(); // منع انتشار الحدث إلى الأعلى لعدم تفعيل مستمع الـ document تلقائياً
     emojiPicker.classList.toggle('show');
 };
 
-// إغلاق اللوحة عند النقر خارجها
+// 2. مستمع الأحداث العالمي لرصد النقرات الخارجية
 document.addEventListener('click', function(e) {
-    const isClickInside = emojiPicker.contains(e.target) || emojiToggleBtn.contains(e.target);
-    if (!isClickInside) {
-        emojiPicker.classList.remove('show');
+    // التحقق أولاً من أن اللوحة مفتوحة لتوفير موارد المعالجة
+    if (emojiPicker.classList.contains('show')) {
+        
+        // التحقق من أن العنصر المنقور (e.target) ليس اللوحة وليس زر التبديل، ولا ينتمي لأي منهما
+        if (!emojiPicker.contains(e.target) && !emojiToggleBtn.contains(e.target)) {
+            emojiPicker.classList.remove('show');
+        }
     }
 });
 
+// 3. عزل النقرات الداخلية للوحة الإيموجي (تمنع الإغلاق العرضي عند التمرير أو اختيار الأقسام)
+emojiPicker.addEventListener('click', function(e) {
+    // تضمن هذه الخطوة عدم إغلاق اللوحة عند النقر على عناصر الإيموجي نفسها، 
+    // إلا إذا كنت ترغب في إغلاقها فور اختيار إيموجي محدد (حينها يتم استدعاء remove('show')).
+    e.stopPropagation(); 
+});
 // إضافة الإيموجي إلى حقل الكتابة عند النقر عليه
 emojiPicker.addEventListener('click', function(e) {
     if (e.target.tagName === 'BUTTON') {
