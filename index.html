@@ -85,7 +85,7 @@
         .room-code-box input { flex: 1; min-width: 100px; }
         .install-btn { position: fixed; bottom: 80px; left: 20px; background: rgba(0,0,0,0.6); border-radius: 30px; padding: 6px 14px; z-index: 1000; font-size: 12px; }
 
-        /* لوحة الإيموجي */
+        /* ===== لوحة الإيموجي ===== */
         .emoji-picker {
             display: none;
             position: absolute;
@@ -170,6 +170,7 @@
             <div id="messages-container"></div>
             <div id="reply-bar"></div>
             <div class="input-group" style="position:relative;">
+                <!-- زر الإيموجي + اللوحة (مرة واحدة فقط) -->
                 <button class="emoji-toggle-btn" id="emoji-toggle-btn" disabled>😊</button>
                 <div class="emoji-picker" id="emoji-picker"></div>
                 <input type="text" id="message-input" placeholder="رسالة مشفرة..." disabled>
@@ -200,7 +201,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 <script>
     // ================================================================
-    // 1. المتغيرات العامة والتشفير (نفس الكود السابق)
+    // 1. المتغيرات العامة والتشفير
     // ================================================================
     let myKeyPair, myUserId, peer, currentConn, currentRecipientId;
     let users = new Map();
@@ -248,7 +249,7 @@
     }
 
     // ================================================================
-    // 2. دوال حفظ واسترجاع المحادثات من localStorage
+    // 2. دوال حفظ واسترجاع المحادثات
     // ================================================================
     function saveMessageToChat(recipientId, msg, isOwn, type='text', msgId=null) {
         if(!chats[recipientId]) chats[recipientId]=[];
@@ -257,17 +258,14 @@
         localStorage.setItem('chats', JSON.stringify(chats));
     }
 
-    // تحميل جميع المحادثات من localStorage وعرضها في الواجهة
     function loadAllChats() {
         const container = document.getElementById('messages-container');
         container.innerHTML = '';
-        // إذا كان هناك مستلم محدد، نعرض محادثاته فقط
         if (currentRecipientId && chats[currentRecipientId]) {
             chats[currentRecipientId].forEach(msg => {
                 appendMessage(msg.text, msg.from === myUserId, msg.from, msg.type==='image', msg.msgId);
             });
         } else {
-            // عرض محادثات جميع المستخدمين (اختياري)
             for (let [id, msgs] of Object.entries(chats)) {
                 msgs.forEach(msg => {
                     appendMessage(msg.text, msg.from === myUserId, msg.from, msg.type==='image', msg.msgId);
@@ -277,26 +275,23 @@
         container.scrollTop = container.scrollHeight;
     }
 
-    // استدعاء loadAllChats عند تحميل الصفحة وعند اختيار مستلم
     window.addEventListener('load', () => {
         setTimeout(loadAllChats, 100);
     });
 
-    // تعديل loadChatHistory لاستخدام loadAllChats
     function loadChatHistory(peerId) {
         currentRecipientId = peerId;
         loadAllChats();
     }
 
     // ================================================================
-    // قائمة الإيموجي - نسخة مستقرة
+    // 3. لوحة الإيموجي (المُصحَّحة)
     // ================================================================
     const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','👍','👎','👏','🙌','🤲','🤝','🙏','✌️','🤟','🤘','👌','🤌','🤞','🤙','👋','🖐️','✋','🖖','👀','👁️','🧠','🫀','🫁','💋','👄','🦷','👅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🪐','🌍','🌎','🌏','🌐','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','⚡','🔥','💧','🌊','🌟','🌈','☂️','☔','⛱️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌬️','🧘','🛀','🛌','🧖','🧗','🧘‍♂️','🧘‍♀️','🤸','🤼','🤽','🤾','🤹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🦸','🦹','🧠','🦾','🦿','🦴','🦷','👀','👁️','👅','👄','🫀','🫁','🧬','🦠','🧫','🧪','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🧺','🧻','🧼','🧽','🧴','🪒','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🧰','🔧','🔩','⚙️','🗜️','⚖️','🔗','⛓️','🧲','⚔️','🗡️','🛡️','🏹','🪃','🪄','🪢','🪣','🪤','🪥','🪦','🪧','🪨','🪶','🪷','🪹','🪺','🪻','🪼','🪽','🪾','🪿','🫀','🫁','🫂','🫃','🫄','🫅','🫆','🫇','🫈','🫉','🫊','🫋','🫌','🫍','🫎','🫏','🫐','🫑','🫒','🫓','🫔','🫕','🫖','🫗','🫘','🫙','🫚','🫛','🫜','🫝','🫞','🫟','🫠'];
-    
+
     const emojiToggleBtn = document.getElementById('emoji-toggle-btn');
     const emojiPicker = document.getElementById('emoji-picker');
-    
-    // بناء الأزرار داخل اللوحة
+
     function buildEmojiPicker() {
         emojiPicker.innerHTML = '';
         emojis.forEach(emoji => {
@@ -307,45 +302,33 @@
         });
     }
     buildEmojiPicker();
-    
+
     // فتح/إغلاق اللوحة عند النقر على الزر
     emojiToggleBtn.addEventListener('click', function(e) {
-        e.stopPropagation(); // منع الإغلاق الفوري
+        e.stopPropagation();
         emojiPicker.classList.toggle('show');
     });
-    
-    // إغلاق اللوحة عند النقر خارجها (أو على الزر مرة أخرى)
+
+    // إغلاق اللوحة عند النقر خارجها
     document.addEventListener('click', function(e) {
-        // إذا كان النقر داخل اللوحة أو على الزر نفسه، لا نغلق
         const isClickInside = emojiPicker.contains(e.target) || emojiToggleBtn.contains(e.target);
         if (!isClickInside) {
             emojiPicker.classList.remove('show');
         }
     });
-    
-    // إضافة الإيموجي إلى حقل الكتابة عند النقر عليه (مع إبقاء اللوحة مفتوحة)
+
+    // إضافة الإيموجي إلى حقل الكتابة عند النقر عليه
     emojiPicker.addEventListener('click', function(e) {
         if (e.target.tagName === 'BUTTON') {
             const input = document.getElementById('message-input');
             input.value += e.target.textContent;
             input.focus();
-            // لا نغلق اللوحة، تبقى مفتوحة لإضافة المزيد
+            // اللوحة تبقى مفتوحة لإضافة المزيد
         }
     });
-    
+
     // ================================================================
-    // الإرسال بالضغط على Enter
-    // ================================================================
-    document.getElementById('message-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            const sendBtn = document.getElementById('send-btn');
-            if (!sendBtn.disabled) sendBtn.click();
-        }
-    });
-    
-    // ================================================================
-    // 4. دوال الكتابة والتأكيد والبث والتذكيرات والإحصائيات (كما هي)
+    // 4. دوال الكتابة والتأكيد والبث والتذكيرات والإحصائيات
     // ================================================================
     function sendTyping(status) { if(currentConn?.open) currentConn.send({ type:'typing', status }); }
     function startTyping() {
@@ -419,7 +402,7 @@
     }
 
     // ================================================================
-    // 5. عرض الرسائل مع دعم الإيموجي (نفسها لكن نضيف صف الإيموجي)
+    // 5. عرض الرسائل
     // ================================================================
     function appendMessage(text, isOwn, senderId, isImage=false, msgId=null, replyToId=null) {
         const container = document.getElementById('messages-container');
@@ -445,7 +428,7 @@
     function appendSystemMessage(msg, isOwn=false) { appendMessage(msg, isOwn, "نظام", false, Date.now()); }
 
     // ================================================================
-    // 6. إرسال الرسائل (مع دعم الإيموجي عبر الحقل)
+    // 6. إرسال الرسائل
     // ================================================================
     async function sendMessage(text, isImage=false, imageDataURL=null) {
         if (!currentConn) {
@@ -480,7 +463,7 @@
     }
 
     // ================================================================
-    // 7. PeerJS - الاتصال مع دعم رموز الغرف
+    // 7. PeerJS
     // ================================================================
     function enableUI(enabled) {
         const elements = ['message-input','send-btn','video-call-btn','voice-input-btn','attach-file-btn','screen-share-btn','live-stream-btn','reminder-btn','emoji-toggle-btn'];
@@ -509,13 +492,11 @@
         peer.on('open', id => {
             appendSystemMessage(`✅ متصل كـ ${myUserId}`, true);
             enableUI(true);
-            // التحقق من الرابط أو التخزين
             const urlParams = new URLSearchParams(window.location.search);
             const roomFromUrl = urlParams.get('room');
             const peerFromUrl = urlParams.get('peer');
             const pubKeyFromUrl = urlParams.get('pubkey');
             if(peerFromUrl && pubKeyFromUrl) {
-                // اتصال مباشر عبر الرابط القديم
                 connectToPeer(peerFromUrl, pubKeyFromUrl);
                 if(roomFromUrl) {
                     document.getElementById('room-code').value = roomFromUrl;
@@ -542,16 +523,13 @@
     };
 
     function connectToRoom(room) {
-        // إنشاء رابط كامل يحتوي على peer و pubkey و room
         const link = window.location.href.split('?')[0] + `?peer=${encodeURIComponent(myUserId)}&pubkey=${encodeURIComponent(myPublicKeyPem)}&room=${room}`;
         navigator.clipboard.writeText(link).then(() => {
             appendSystemMessage(`🔗 رابط الغرفة: ${link} (تم نسخه)`, true);
         }).catch(() => {
             appendSystemMessage(`🔗 انسخ هذا الرابط: ${link}`, true);
         });
-        // إرسال إعلان الغرفة عبر الاتصالات القائمة
         if(peer) {
-            // نبحث عن أي اتصال مفتوح ونرسل إعلان الغرفة
             for(let [id, info] of users.entries()) {
                 if(info.conn && info.conn.open) {
                     info.conn.send({ type: 'room-announce', room: room, userId: myUserId, publicKey: myPublicKeyPem });
@@ -640,7 +618,7 @@
     }
 
     // ================================================================
-    // 8. أزرار الإدخال والصوت والصورة والتذكير والإحصائيات والبحث
+    // 8. الأزرار
     // ================================================================
     document.getElementById('send-btn').onclick = async () => {
         const inp=document.getElementById('message-input');
@@ -908,6 +886,17 @@
             document.getElementById('install-btn').style.display = 'none';
         }
     };
+
+    // ================================================================
+    // 14. الإرسال بالضغط على Enter
+    // ================================================================
+    document.getElementById('message-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const sendBtn = document.getElementById('send-btn');
+            if (!sendBtn.disabled) sendBtn.click();
+        }
+    });
 </script>
 </body>
 </html>
